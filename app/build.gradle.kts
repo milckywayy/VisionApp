@@ -37,6 +37,7 @@ android {
 }
 
 dependencies {
+    // Navigation
     implementation("androidx.navigation:navigation-compose:2.8.9")
 
     // Camera
@@ -45,10 +46,6 @@ dependencies {
     implementation("androidx.camera:camera-lifecycle:1.4.2")
     implementation("androidx.camera:camera-view:1.4.2")
     implementation("androidx.camera:camera-extensions:1.4.2")
-
-    implementation("androidx.camera:camera-mlkit-vision:1.4.2") // YuvToRgbConverter
-
-    implementation("io.coil-kt:coil-compose:2.2.2")
 
     implementation("androidx.core:core-ktx:1.15.0")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.7")

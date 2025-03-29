@@ -5,7 +5,6 @@ import android.graphics.Bitmap
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.camera.core.*
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.runtime.*
@@ -14,29 +13,26 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleOwner
 import androidx.navigation.NavController
 import com.example.visionapp.ui.common.TextButton
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
-import com.example.visionapp.utils.startCamera
-import com.example.visionapp.utils.imageProxyToBitmap
 import com.example.visionapp.CameraConfig
-import android.util.Log
+import androidx.camera.lifecycle.ProcessCameraProvider
+import com.example.visionapp.utils.scaleBitmap
+import com.example.visionapp.utils.startCameraWithAnalyzer
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 @Composable
 fun HomeScreen(navController: NavController) {
     val context = LocalContext.current
     val lifecycleOwner = context as LifecycleOwner
+    val coroutineScope = rememberCoroutineScope()
 
     var hasCameraPermission by remember { mutableStateOf(false) }
-    var imageCapture by remember { mutableStateOf<ImageCapture?>(null) }
     var isCapturing by remember { mutableStateOf(false) }
-
-    val coroutineScope = rememberCoroutineScope()
+    var cameraProvider by remember { mutableStateOf<ProcessCameraProvider?>(null) }
     val bitmapBuffer = remember { mutableStateListOf<Bitmap>() }
 
     val requestPermissionLauncher = rememberLauncherForActivityResult(
@@ -45,8 +41,6 @@ fun HomeScreen(navController: NavController) {
         hasCameraPermission = isGranted
         if (!isGranted) {
             Toast.makeText(context, "Brak uprawnień do aparatu!", Toast.LENGTH_SHORT).show()
-        } else {
-            startCamera(context, lifecycleOwner) { capture -> imageCapture = capture }
         }
     }
 
@@ -54,57 +48,19 @@ fun HomeScreen(navController: NavController) {
         requestPermissionLauncher.launch(Manifest.permission.CAMERA)
     }
 
-    fun addToBuffer(bitmap: Bitmap) {
+    fun addBitmapToBuffer(bitmap: Bitmap) {
         if (bitmapBuffer.size == CameraConfig.MAX_BUFFER_SIZE) {
             bitmapBuffer.removeAt(0).recycle()
         }
         bitmapBuffer.add(bitmap)
     }
 
-    fun capturePhoto() {
-        if (!hasCameraPermission || imageCapture == null) return
+    fun processImage(bitmap: Bitmap) {
+        val segmentationImage = scaleBitmap(bitmap, CameraConfig.SEGMENTATION_RESOLUTION)
+        val detectionImage = scaleBitmap(bitmap, CameraConfig.DETECTION_RESOLUTION)
+        val depthImage = scaleBitmap(bitmap, CameraConfig.DEPTH_RESOLUTION)
 
-        imageCapture?.takePicture(
-            ContextCompat.getMainExecutor(context),
-            object : ImageCapture.OnImageCapturedCallback() {
-                override fun onCaptureSuccess(image: ImageProxy) {
-                    var bitmap = imageProxyToBitmap(image)
-                    image.close()
-
-                    coroutineScope.launch(Dispatchers.Default) {
-                        val resized = withContext(Dispatchers.Default) {
-                            listOf(
-                                Bitmap.createScaledBitmap(
-                                    bitmap,
-                                    CameraConfig.SEGMENTATION_RESOLUTION.width,
-                                    CameraConfig.SEGMENTATION_RESOLUTION.height,
-                                    false
-                                ),
-                                Bitmap.createScaledBitmap(
-                                    bitmap,
-                                    CameraConfig.DETECTION_RESOLUTION.width,
-                                    CameraConfig.DETECTION_RESOLUTION.height,
-                                    false
-                                ),
-                                Bitmap.createScaledBitmap(
-                                    bitmap,
-                                    CameraConfig.DEPTH_RESOLUTION.width,
-                                    CameraConfig.DEPTH_RESOLUTION.height,
-                                    false
-                                )
-                            )
-                        }
-                    }
-
-                    Log.d("XXXX", "Image captured")
-                    // addToBuffer(depthBitmap)
-                }
-
-                override fun onError(exception: ImageCaptureException) {
-                    Toast.makeText(context, "Błąd: ${exception.message}", Toast.LENGTH_SHORT).show()
-                }
-            }
-        )
+        addBitmapToBuffer(detectionImage)
     }
 
     fun startCapturing() {
@@ -113,17 +69,35 @@ fun HomeScreen(navController: NavController) {
             return
         }
 
+        var lastProcessedTime = 0L
         isCapturing = true
-        coroutineScope.launch {
-            while (isCapturing) {
-                capturePhoto()
-                delay(CameraConfig.CAPTURE_DELAY_MS)
+
+        startCameraWithAnalyzer(
+            context = context,
+            lifecycleOwner = lifecycleOwner,
+            onFrame = { bitmap ->
+                val currentTime = System.currentTimeMillis()
+                if (currentTime - lastProcessedTime >= CameraConfig.CAPTURE_DELAY_MS) {
+                    lastProcessedTime = currentTime
+
+                    coroutineScope.launch(Dispatchers.Default) {
+                        processImage(bitmap)
+                    }
+                } else {
+                    bitmap.recycle()
+                }
+            },
+            onProviderReady = { provider ->
+                cameraProvider = provider
             }
-        }
+        )
     }
 
     fun stopCapturing() {
+        bitmapBuffer.forEach { it.recycle() }
+        bitmapBuffer.clear()
         isCapturing = false
+        cameraProvider?.unbindAll()
     }
 
     Column(
