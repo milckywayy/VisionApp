@@ -62,4 +62,7 @@ dependencies {
     androidTestImplementation("androidx.compose.ui:ui-test-junit4")
     debugImplementation("androidx.compose.ui:ui-tooling")
     debugImplementation("androidx.compose.ui:ui-test-manifest")
+
+    //onnx
+    implementation("com.microsoft.onnxruntime:onnxruntime-android:1.16.3")
 }
