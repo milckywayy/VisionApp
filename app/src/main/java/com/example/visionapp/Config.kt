@@ -9,5 +9,5 @@ object CameraConfig {
     val DETECTION_RESOLUTION = Size(640, 640)
     val DEPTH_RESOLUTION = Size(210 , 210)
     const val MAX_BUFFER_SIZE = 5
-    const val CAPTURE_DELAY_MS = 50L
+    const val CAPTURE_DELAY_MS = 500L
 }
