@@ -1,7 +1,12 @@
 package com.example.visionapp
 
 import android.util.Size
+import java.util.Locale
 
+
+object LocalizationConfig {
+    val DEFAULT_TTS_LANGUAGE: Locale = Locale.ENGLISH
+}
 
 object CameraConfig {
     val DEFAULT_RESOLUTION = Size(640, 1024)
