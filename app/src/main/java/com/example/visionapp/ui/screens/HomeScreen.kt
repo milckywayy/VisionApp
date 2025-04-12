@@ -40,12 +40,15 @@ fun HomeScreen(navController: NavController) {
     ) { isGranted ->
         hasCameraPermission = isGranted
         if (!isGranted) {
-            Toast.makeText(context, "Brak uprawnień do aparatu!", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, "Missing camera permission", Toast.LENGTH_SHORT).show()
         }
     }
 
     LaunchedEffect(Unit) {
         requestPermissionLauncher.launch(Manifest.permission.CAMERA)
+        val segModelBytes = context.assets.open("pp_liteseg.onnx").readBytes()
+        //val depthModelBytes = context.assets.open("pp_liteseg.onnx").readBytes()
+        //val detectionModelBytes = context.assets.open("pp_liteseg.onnx").readBytes()
     }
 
     fun addBitmapToBuffer(bitmap: Bitmap) {
@@ -108,7 +111,7 @@ fun HomeScreen(navController: NavController) {
         bitmapBuffer.lastOrNull()?.let { bitmap ->
             Image(
                 bitmap = bitmap.asImageBitmap(),
-                contentDescription = "Zrobione zdjęcie",
+                contentDescription = "Photo taken",
                 modifier = Modifier.size(300.dp)
             )
         }
