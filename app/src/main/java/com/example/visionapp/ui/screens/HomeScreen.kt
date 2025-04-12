@@ -20,8 +20,10 @@ import com.example.visionapp.CameraConfig
 import androidx.camera.lifecycle.ProcessCameraProvider
 import com.example.visionapp.ModelsConfig
 import com.example.visionapp.onnxmodels.ModelPredictor
+import com.example.visionapp.onnxmodels.models.DepthModel
 import com.example.visionapp.onnxmodels.models.DetectionModel
 import com.example.visionapp.onnxmodels.models.SegmentationModel
+import com.example.visionapp.onnxmodels.processing.DepthPostprocessor
 import com.example.visionapp.onnxmodels.processing.DetectionPostprocessor
 import com.example.visionapp.onnxmodels.processing.DetectionResult
 import com.example.visionapp.onnxmodels.processing.SegmentationPostprocessor
@@ -55,6 +57,9 @@ fun HomeScreen(navController: NavController) {
     val detModel = remember { DetectionModel(CameraConfig.DETECTION_RESOLUTION) }
     val detPostprocessor = remember { DetectionPostprocessor() }
     val detModelPredictor = remember { ModelPredictor<FloatArray, List<DetectionResult>>(detModel, detPostprocessor) }
+    val depthModel = remember { DepthModel(CameraConfig.DEPTH_RESOLUTION) }
+    val depthPostprocessor = remember { DepthPostprocessor() }
+    val depthModelPredictor = remember { ModelPredictor<FloatArray, Bitmap?>(depthModel, depthPostprocessor) }
 
 
     LaunchedEffect(Unit) {
@@ -63,6 +68,8 @@ fun HomeScreen(navController: NavController) {
         segModel.initModel(segModelBytes)
         val detModelBytes = context.assets.open(ModelsConfig.DET_MODEL_PATH).readBytes()
         detModel.initModel(detModelBytes)
+        val depthModelBytes = context.assets.open(ModelsConfig.DEPTH_MODEL_PATH).readBytes()
+        depthModel.initModel(depthModelBytes)
     }
 
     fun addBitmapToBuffer(bitmap: Bitmap) {
@@ -75,13 +82,17 @@ fun HomeScreen(navController: NavController) {
     fun processImage(bitmap: Bitmap) {
         val segmentedImage = segModelPredictor.makePredictionsDebug(bitmap)
         val detectionImage = detModelPredictor.makePredictionsDebug(bitmap)
+        val depthImage = depthModelPredictor.makePredictionsDebug(bitmap)
 
         if (segmentedImage != null) {
             addBitmapToBuffer(segmentedImage)
         }
-        /*if (detectionImage != null) {
-            addBitmapToBuffer(detectionImage)
-        }*/
+//        if (detectionImage != null) {
+//            addBitmapToBuffer(detectionImage)
+//        }
+//        if (depthImage != null) {
+//            addBitmapToBuffer(depthImage)
+//        }
     }
 
     fun startCapturing() {
