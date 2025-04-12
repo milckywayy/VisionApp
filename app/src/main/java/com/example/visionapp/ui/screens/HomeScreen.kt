@@ -18,11 +18,13 @@ import androidx.navigation.NavController
 import com.example.visionapp.ui.common.TextButton
 import com.example.visionapp.CameraConfig
 import androidx.camera.lifecycle.ProcessCameraProvider
-import com.example.visionapp.utils.scaleBitmap
+import com.example.visionapp.ModelsConfig
+import com.example.visionapp.onnxmodels.ModelPredictor
+import com.example.visionapp.onnxmodels.models.SegmentationModel
+import com.example.visionapp.onnxmodels.processing.SegmentationPostprocessor
 import com.example.visionapp.utils.startCameraWithAnalyzer
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 
 @Composable
 fun HomeScreen(navController: NavController) {
@@ -44,11 +46,14 @@ fun HomeScreen(navController: NavController) {
         }
     }
 
+    val segModel = remember { SegmentationModel(CameraConfig.SEGMENTATION_RESOLUTION) }
+    val segPostprocessor = remember { SegmentationPostprocessor() }
+    val segModelPredictor = remember { ModelPredictor<IntArray, Bitmap?>(segModel, segPostprocessor) }
+
     LaunchedEffect(Unit) {
         requestPermissionLauncher.launch(Manifest.permission.CAMERA)
-        val segModelBytes = context.assets.open("pp_liteseg.onnx").readBytes()
-        //val depthModelBytes = context.assets.open("pp_liteseg.onnx").readBytes()
-        //val detectionModelBytes = context.assets.open("pp_liteseg.onnx").readBytes()
+        val segModelBytes = context.assets.open(ModelsConfig.SEG_MODEL_PATH).readBytes()
+        segModel.initModel(segModelBytes)
     }
 
     fun addBitmapToBuffer(bitmap: Bitmap) {
@@ -59,11 +64,11 @@ fun HomeScreen(navController: NavController) {
     }
 
     fun processImage(bitmap: Bitmap) {
-        val segmentationImage = scaleBitmap(bitmap, CameraConfig.SEGMENTATION_RESOLUTION)
-        val detectionImage = scaleBitmap(bitmap, CameraConfig.DETECTION_RESOLUTION)
-        val depthImage = scaleBitmap(bitmap, CameraConfig.DEPTH_RESOLUTION)
+        val segmentationResult = segModelPredictor.makePredictions(bitmap)
 
-        addBitmapToBuffer(detectionImage)
+        if (segmentationResult != null) {
+            addBitmapToBuffer(segmentationResult)
+        }
     }
 
     fun startCapturing() {

@@ -1,4 +1,4 @@
-package com.example.visionapp.onnxmodels
+package com.example.visionapp.onnxmodels.processing
 
 import ai.onnxruntime.OnnxTensor
 import ai.onnxruntime.OrtEnvironment

@@ -11,3 +11,7 @@ object CameraConfig {
     const val MAX_BUFFER_SIZE = 5
     const val CAPTURE_DELAY_MS = 500L
 }
+
+object ModelsConfig {
+    const val SEG_MODEL_PATH = "pp_liteseg.onnx"
+}

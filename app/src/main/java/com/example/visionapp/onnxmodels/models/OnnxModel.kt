@@ -1,28 +1,30 @@
-package com.example.visionapp.onnxmodels
+package com.example.visionapp.onnxmodels.models
 
+import ai.onnxruntime.OnnxTensor
 import ai.onnxruntime.OrtEnvironment
 import ai.onnxruntime.OrtException
 import ai.onnxruntime.OrtSession
+import android.util.Size
 
-abstract class OnnxModel<T>(modelBytes: ByteArray, width: Int, height: Int) {
+abstract class OnnxModel<T>(resolution: Size) {
+    var resolution: Size
     protected lateinit var session: OrtSession
     protected var env: OrtEnvironment = OrtEnvironment.getEnvironment()
-    protected var width: Int = 0
-    protected var height: Int = 0
 
     init {
+        this.resolution = resolution
+    }
+
+    abstract fun runInference(inputTensor: OnnxTensor): Array<T>
+
+    fun initModel(modelBytes: ByteArray){
         try {
             val sessionOptions = OrtSession.SessionOptions()
             this.session = env.createSession(modelBytes, sessionOptions)
-            this.width = width
-            this.height = height
         } catch (e: OrtException) {
             e.printStackTrace()
         }
     }
-
-    abstract fun runInference(inputArray: FloatArray): Array<T>
-
 
     fun closeSession() {
         session.close()
