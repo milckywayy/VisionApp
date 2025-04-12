@@ -3,6 +3,7 @@ package com.example.visionapp.utils
 import android.content.Context
 import android.speech.tts.TextToSpeech
 import com.example.visionapp.LocalizationConfig
+import com.example.visionapp.model.SpeechPriority
 import java.util.*
 
 
@@ -37,10 +38,15 @@ class TextToSpeechManager(
         return tts?.isSpeaking == true
     }
 
-    fun speak(text: String) {
+    fun speak(text: String, priority: SpeechPriority = SpeechPriority.NORMAL) {
         if (text.isBlank() || !isReady) return
 
-        tts?.speak(text, TextToSpeech.QUEUE_FLUSH, null, null)
+        val queueMode = when (priority) {
+            SpeechPriority.IMPORTANT -> TextToSpeech.QUEUE_FLUSH
+            SpeechPriority.NORMAL -> TextToSpeech.QUEUE_ADD
+        }
+
+        tts?.speak(text, queueMode, null, text.hashCode().toString())
     }
 
     fun stop() {
