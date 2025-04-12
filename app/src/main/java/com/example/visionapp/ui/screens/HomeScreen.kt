@@ -20,7 +20,10 @@ import com.example.visionapp.CameraConfig
 import androidx.camera.lifecycle.ProcessCameraProvider
 import com.example.visionapp.ModelsConfig
 import com.example.visionapp.onnxmodels.ModelPredictor
+import com.example.visionapp.onnxmodels.models.DetectionModel
 import com.example.visionapp.onnxmodels.models.SegmentationModel
+import com.example.visionapp.onnxmodels.processing.DetectionPostprocessor
+import com.example.visionapp.onnxmodels.processing.DetectionResult
 import com.example.visionapp.onnxmodels.processing.SegmentationPostprocessor
 import com.example.visionapp.utils.startCameraWithAnalyzer
 import kotlinx.coroutines.Dispatchers
@@ -49,11 +52,17 @@ fun HomeScreen(navController: NavController) {
     val segModel = remember { SegmentationModel(CameraConfig.SEGMENTATION_RESOLUTION) }
     val segPostprocessor = remember { SegmentationPostprocessor() }
     val segModelPredictor = remember { ModelPredictor<IntArray, Array<IntArray>>(segModel, segPostprocessor) }
+    val detModel = remember { DetectionModel(CameraConfig.DETECTION_RESOLUTION) }
+    val detPostprocessor = remember { DetectionPostprocessor() }
+    val detModelPredictor = remember { ModelPredictor<FloatArray, List<DetectionResult>>(detModel, detPostprocessor) }
+
 
     LaunchedEffect(Unit) {
         requestPermissionLauncher.launch(Manifest.permission.CAMERA)
         val segModelBytes = context.assets.open(ModelsConfig.SEG_MODEL_PATH).readBytes()
         segModel.initModel(segModelBytes)
+        val detModelBytes = context.assets.open(ModelsConfig.DET_MODEL_PATH).readBytes()
+        detModel.initModel(detModelBytes)
     }
 
     fun addBitmapToBuffer(bitmap: Bitmap) {
@@ -65,10 +74,14 @@ fun HomeScreen(navController: NavController) {
 
     fun processImage(bitmap: Bitmap) {
         val segmentedImage = segModelPredictor.makePredictionsDebug(bitmap)
+        val detectionImage = detModelPredictor.makePredictionsDebug(bitmap)
 
         if (segmentedImage != null) {
             addBitmapToBuffer(segmentedImage)
         }
+        /*if (detectionImage != null) {
+            addBitmapToBuffer(detectionImage)
+        }*/
     }
 
     fun startCapturing() {

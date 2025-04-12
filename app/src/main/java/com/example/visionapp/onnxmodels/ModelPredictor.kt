@@ -23,7 +23,7 @@ class ModelPredictor<TParam, TReturn>(model: OnnxModel<TParam>, postprocessor: I
 
     fun makePredictionsDebug(inputBitmap: Bitmap): Bitmap?{
         val modelPreds = makePredictionsWithModel(inputBitmap)
-        val finalPreds = postprocessor.postprocessDebug(modelPreds)
+        val finalPreds = postprocessor.postprocessDebug(modelPreds, inputBitmap)
         return finalPreds
     }
 

@@ -26,7 +26,7 @@ class SegmentationPostprocessor : IPostprocessor<IntArray, Array<IntArray>> {
         return modelOutput
     }
 
-    override fun postprocessDebug(modelOutput: Array<IntArray>): Bitmap? {
+    override fun postprocessDebug(modelOutput: Array<IntArray>, inputBitmap: Bitmap?): Bitmap? {
         return createColouredBitmap(modelOutput)
     }
 

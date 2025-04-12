@@ -4,5 +4,5 @@ import android.graphics.Bitmap
 
 interface IPostprocessor<TParam,TReturn> {
     fun postprocess(modelOutput: Array<TParam>): TReturn
-    fun postprocessDebug(modelOutput: Array<TParam>): Bitmap?
+    fun postprocessDebug(modelOutput: Array<TParam>, inputBitmap: Bitmap? = null): Bitmap?
 }
