@@ -34,9 +34,9 @@ class TextToSpeechManager(
     }
 
     fun speak(text: String) {
-        if (isReady) {
-            tts?.speak(text, TextToSpeech.QUEUE_FLUSH, null, null)
-        }
+        if (text.isBlank() || !isReady) return
+
+        tts?.speak(text, TextToSpeech.QUEUE_FLUSH, null, null)
     }
 
     fun stop() {
