@@ -33,6 +33,10 @@ class TextToSpeechManager(
         }
     }
 
+    fun isSpeaking(): Boolean {
+        return tts?.isSpeaking == true
+    }
+
     fun speak(text: String) {
         if (text.isBlank() || !isReady) return
 
