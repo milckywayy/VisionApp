@@ -5,7 +5,7 @@ import android.graphics.Color
 import androidx.core.graphics.createBitmap
 import androidx.core.graphics.set
 
-class SegmentationPostprocessor : IPostprocessor<IntArray, Bitmap?> {
+class SegmentationPostprocessor : IPostprocessor<IntArray, Array<IntArray>> {
 
     private val colorMap = mapOf(
         0   to intArrayOf(0,    0,      0,      192),   // road,        black
@@ -22,7 +22,11 @@ class SegmentationPostprocessor : IPostprocessor<IntArray, Bitmap?> {
         11  to intArrayOf(204,  51,     102,    192)    // train,       claret
     )
 
-    override fun postprocess(modelOutput: Array<IntArray>): Bitmap? {
+    override fun postprocess(modelOutput: Array<IntArray>): Array<IntArray> {
+        return modelOutput
+    }
+
+    override fun postprocessDebug(modelOutput: Array<IntArray>): Bitmap? {
         return createColouredBitmap(modelOutput)
     }
 

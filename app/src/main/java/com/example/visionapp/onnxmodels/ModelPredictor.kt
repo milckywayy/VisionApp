@@ -16,11 +16,22 @@ class ModelPredictor<TParam, TReturn>(model: OnnxModel<TParam>, postprocessor: I
     }
 
     fun makePredictions(inputBitmap: Bitmap) : TReturn{
+        val modelPreds = makePredictionsWithModel(inputBitmap)
+        val finalPreds = postprocessor.postprocess(modelPreds)
+        return finalPreds
+    }
+
+    fun makePredictionsDebug(inputBitmap: Bitmap): Bitmap?{
+        val modelPreds = makePredictionsWithModel(inputBitmap)
+        val finalPreds = postprocessor.postprocessDebug(modelPreds)
+        return finalPreds
+    }
+
+    private fun makePredictionsWithModel(inputBitmap: Bitmap): Array<TParam>{
         val scaledBitmap = scaleBitmap(inputBitmap, model.resolution)
         val image = scaleBitmap(scaledBitmap, model.resolution)
         val inputTensor = Preprocessor.createTensor(image)
         val modelPreds = model.runInference(inputTensor)
-        val finalPreds = postprocessor.postprocess(modelPreds)
-        return finalPreds
+        return modelPreds
     }
 }

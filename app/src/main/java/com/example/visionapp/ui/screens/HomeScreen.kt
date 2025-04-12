@@ -48,7 +48,7 @@ fun HomeScreen(navController: NavController) {
 
     val segModel = remember { SegmentationModel(CameraConfig.SEGMENTATION_RESOLUTION) }
     val segPostprocessor = remember { SegmentationPostprocessor() }
-    val segModelPredictor = remember { ModelPredictor<IntArray, Bitmap?>(segModel, segPostprocessor) }
+    val segModelPredictor = remember { ModelPredictor<IntArray, Array<IntArray>>(segModel, segPostprocessor) }
 
     LaunchedEffect(Unit) {
         requestPermissionLauncher.launch(Manifest.permission.CAMERA)
@@ -64,10 +64,10 @@ fun HomeScreen(navController: NavController) {
     }
 
     fun processImage(bitmap: Bitmap) {
-        val segmentationResult = segModelPredictor.makePredictions(bitmap)
+        val segmentedImage = segModelPredictor.makePredictionsDebug(bitmap)
 
-        if (segmentationResult != null) {
-            addBitmapToBuffer(segmentationResult)
+        if (segmentedImage != null) {
+            addBitmapToBuffer(segmentedImage)
         }
     }
 
