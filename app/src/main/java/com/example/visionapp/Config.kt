@@ -15,7 +15,8 @@ object CameraConfig {
 object ModelsConfig {
     const val SEG_MODEL_PATH = "pp_liteseg.onnx"
     const val DET_MODEL_PATH = "detection.onnx"
-    const val  DET_MODEL_NUM_OF_CLASSES = 7
+    const val DEPTH_MODEL_PATH = "vits_280.onnx"
+    const val DET_MODEL_NUM_OF_CLASSES = 7
     const val DET_MODEL_CONFIDENCE_THRESHOLD = 0.25f
     const val DET_MODEL_IOU_THRESHOLD = 0.5f
 }
