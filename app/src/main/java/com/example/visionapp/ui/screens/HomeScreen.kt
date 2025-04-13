@@ -53,7 +53,7 @@ fun HomeScreen(navController: NavController) {
 
     val segModel = remember { SegmentationModel(CameraConfig.SEGMENTATION_RESOLUTION) }
     val segPostprocessor = remember { SegmentationPostprocessor() }
-    val segModelPredictor = remember { ModelPredictor<IntArray, Array<IntArray>>(segModel, segPostprocessor) }
+    val segModelPredictor = remember { ModelPredictor<IntArray, Bitmap?>(segModel, segPostprocessor) }
     val detModel = remember { DetectionModel(CameraConfig.DETECTION_RESOLUTION) }
     val detPostprocessor = remember { DetectionPostprocessor() }
     val detModelPredictor = remember { ModelPredictor<FloatArray, List<DetectionResult>>(detModel, detPostprocessor) }

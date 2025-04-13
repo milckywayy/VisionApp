@@ -5,7 +5,7 @@ import android.graphics.Color
 import androidx.core.graphics.createBitmap
 import androidx.core.graphics.set
 
-class SegmentationPostprocessor : IPostprocessor<IntArray, Array<IntArray>> {
+class SegmentationPostprocessor : IPostprocessor<IntArray, Bitmap?> {
 
     private val colorMap = mapOf(
         0   to intArrayOf(0,    0,      0,      192),   // road,        black
@@ -22,8 +22,8 @@ class SegmentationPostprocessor : IPostprocessor<IntArray, Array<IntArray>> {
         11  to intArrayOf(204,  51,     102,    192)    // train,       claret
     )
 
-    override fun postprocess(modelOutput: Array<IntArray>): Array<IntArray> {
-        return modelOutput
+    override fun postprocess(modelOutput: Array<IntArray>): Bitmap? {
+        return createOutputBitmap(modelOutput)
     }
 
     override fun postprocessDebug(modelOutput: Array<IntArray>, inputBitmap: Bitmap?): Bitmap? {
@@ -31,11 +31,11 @@ class SegmentationPostprocessor : IPostprocessor<IntArray, Array<IntArray>> {
             return addColouredMaskToOriginalImage(modelOutput, inputBitmap)
         }
         else{
-            return createColouredBitmap(modelOutput)
+            return createOutputBitmap(modelOutput, createColoured = true)
         }
     }
 
-    private fun createColouredBitmap(array: Array<IntArray>): Bitmap? {
+    private fun createOutputBitmap(array: Array<IntArray>, createColoured: Boolean = false): Bitmap? {
         if (array.isEmpty()) return null
         val width = array[0].size
         val height = array.size
@@ -43,7 +43,13 @@ class SegmentationPostprocessor : IPostprocessor<IntArray, Array<IntArray>> {
 
         for (y in 0 until height) {
             for (x in 0 until width) {
-                bitmap[x, y] = getColorFromClassId(array[y][x])
+                if(createColoured) {
+                    bitmap[x, y] = getColorFromClassId(array[y][x])
+                }
+                else{
+                    val colourValue = array[y][x]
+                    bitmap[x, y] = Color.rgb(colourValue, colourValue, colourValue)
+                }
             }
         }
         return bitmap
