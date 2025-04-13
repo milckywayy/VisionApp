@@ -27,27 +27,53 @@ class SegmentationPostprocessor : IPostprocessor<IntArray, Array<IntArray>> {
     }
 
     override fun postprocessDebug(modelOutput: Array<IntArray>, inputBitmap: Bitmap?): Bitmap? {
-        return createColouredBitmap(modelOutput)
+        if(inputBitmap != null){
+            return addColouredMaskToOriginalImage(modelOutput, inputBitmap)
+        }
+        else{
+            return createColouredBitmap(modelOutput)
+        }
     }
 
     private fun createColouredBitmap(array: Array<IntArray>): Bitmap? {
-        if(array == null || array.isEmpty()){
-            return null
-        }
+        if (array.isEmpty()) return null
         val width = array[0].size
         val height = array.size
-
-        val bitmap = createBitmap(width, height)
+        val bitmap = createBitmap(width, height, Bitmap.Config.ARGB_8888)
 
         for (y in 0 until height) {
             for (x in 0 until width) {
-                val pixelValue = array[y][x]
-                val color = colorMap[pixelValue] ?: intArrayOf(0, 0, 0, 192)
-                val pixelColor = Color.argb(color[3], color[0], color[1], color[2])
-                bitmap[x, y] = pixelColor
+                bitmap[x, y] = getColorFromClassId(array[y][x])
             }
         }
-
         return bitmap
+    }
+
+    private fun addColouredMaskToOriginalImage(modelOutput: Array<IntArray>, inputBitmap: Bitmap): Bitmap {
+        val width = inputBitmap.width
+        val height = inputBitmap.height
+        val resultBitmap = inputBitmap.copy(Bitmap.Config.ARGB_8888, true)
+
+        for (y in 0 until height) {
+            for (x in 0 until width) {
+                val overlayColor = colorMap[modelOutput[y][x]] ?: intArrayOf(0, 0, 0, 192)
+                val origColor = inputBitmap.getPixel(x, y)
+                resultBitmap.setPixel(x, y, blendColors(origColor, overlayColor))
+            }
+        }
+        return resultBitmap
+    }
+
+    private fun getColorFromClassId(classId: Int): Int {
+        val c = colorMap[classId] ?: intArrayOf(0, 0, 0, 192)
+        return Color.argb(c[3], c[0], c[1], c[2])
+    }
+
+    private fun blendColors(baseColor: Int, overlay: IntArray): Int {
+        val alphaFactor = overlay[3] / 255f
+        val r = ((1 - alphaFactor) * Color.red(baseColor) + alphaFactor * overlay[0]).toInt()
+        val g = ((1 - alphaFactor) * Color.green(baseColor) + alphaFactor * overlay[1]).toInt()
+        val b = ((1 - alphaFactor) * Color.blue(baseColor) + alphaFactor * overlay[2]).toInt()
+        return Color.rgb(r, g, b)
     }
 }
