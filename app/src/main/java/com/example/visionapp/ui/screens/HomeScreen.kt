@@ -18,11 +18,18 @@ import androidx.navigation.NavController
 import com.example.visionapp.ui.common.TextButton
 import com.example.visionapp.CameraConfig
 import androidx.camera.lifecycle.ProcessCameraProvider
-import com.example.visionapp.utils.scaleBitmap
+import com.example.visionapp.ModelsConfig
+import com.example.visionapp.onnxmodels.ModelPredictor
+import com.example.visionapp.onnxmodels.models.DepthModel
+import com.example.visionapp.onnxmodels.models.DetectionModel
+import com.example.visionapp.onnxmodels.models.SegmentationModel
+import com.example.visionapp.onnxmodels.processing.DepthPostprocessor
+import com.example.visionapp.onnxmodels.processing.DetectionPostprocessor
+import com.example.visionapp.onnxmodels.processing.DetectionResult
+import com.example.visionapp.onnxmodels.processing.SegmentationPostprocessor
 import com.example.visionapp.utils.startCameraWithAnalyzer
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 
 @Composable
 fun HomeScreen(navController: NavController) {
@@ -40,12 +47,29 @@ fun HomeScreen(navController: NavController) {
     ) { isGranted ->
         hasCameraPermission = isGranted
         if (!isGranted) {
-            Toast.makeText(context, "Brak uprawnień do aparatu!", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, "Missing camera permission", Toast.LENGTH_SHORT).show()
         }
     }
 
+    val segModel = remember { SegmentationModel(CameraConfig.SEGMENTATION_RESOLUTION) }
+    val segPostprocessor = remember { SegmentationPostprocessor() }
+    val segModelPredictor = remember { ModelPredictor<IntArray, Bitmap?>(segModel, segPostprocessor) }
+    val detModel = remember { DetectionModel(CameraConfig.DETECTION_RESOLUTION) }
+    val detPostprocessor = remember { DetectionPostprocessor() }
+    val detModelPredictor = remember { ModelPredictor<FloatArray, List<DetectionResult>>(detModel, detPostprocessor) }
+    val depthModel = remember { DepthModel(CameraConfig.DEPTH_RESOLUTION) }
+    val depthPostprocessor = remember { DepthPostprocessor() }
+    val depthModelPredictor = remember { ModelPredictor<FloatArray, Bitmap?>(depthModel, depthPostprocessor) }
+
+
     LaunchedEffect(Unit) {
         requestPermissionLauncher.launch(Manifest.permission.CAMERA)
+        val segModelBytes = context.assets.open(ModelsConfig.SEG_MODEL_PATH).readBytes()
+        segModel.initModel(segModelBytes)
+        val detModelBytes = context.assets.open(ModelsConfig.DET_MODEL_PATH).readBytes()
+        detModel.initModel(detModelBytes)
+        val depthModelBytes = context.assets.open(ModelsConfig.DEPTH_MODEL_PATH).readBytes()
+        depthModel.initModel(depthModelBytes)
     }
 
     fun addBitmapToBuffer(bitmap: Bitmap) {
@@ -56,11 +80,19 @@ fun HomeScreen(navController: NavController) {
     }
 
     fun processImage(bitmap: Bitmap) {
-        val segmentationImage = scaleBitmap(bitmap, CameraConfig.SEGMENTATION_RESOLUTION)
-        val detectionImage = scaleBitmap(bitmap, CameraConfig.DETECTION_RESOLUTION)
-        val depthImage = scaleBitmap(bitmap, CameraConfig.DEPTH_RESOLUTION)
+        val segmentedImage = segModelPredictor.makePredictionsDebug(bitmap)
+        val detectionImage = detModelPredictor.makePredictionsDebug(bitmap)
+        val depthImage = depthModelPredictor.makePredictionsDebug(bitmap)
 
-        addBitmapToBuffer(detectionImage)
+        if (segmentedImage != null) {
+            addBitmapToBuffer(segmentedImage)
+        }
+//        if (detectionImage != null) {
+//            addBitmapToBuffer(detectionImage)
+//        }
+//        if (depthImage != null) {
+//            addBitmapToBuffer(depthImage)
+//        }
     }
 
     fun startCapturing() {
@@ -108,7 +140,7 @@ fun HomeScreen(navController: NavController) {
         bitmapBuffer.lastOrNull()?.let { bitmap ->
             Image(
                 bitmap = bitmap.asImageBitmap(),
-                contentDescription = "Zrobione zdjęcie",
+                contentDescription = "Photo taken",
                 modifier = Modifier.size(300.dp)
             )
         }
