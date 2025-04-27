@@ -60,13 +60,20 @@ class DetectionPostprocessor : IPostprocessor<FloatArray, List<DetectionResult>>
             val iterator = sorted.iterator()
             while (iterator.hasNext()) {
                 val det = iterator.next()
-                if (iou(best.box, det.box) > iouThreshold) {
-                    iterator.remove()
+                if (getClassGroup(best.classId) == getClassGroup(det.classId)) {
+                    if (iou(best.box, det.box) > iouThreshold) {
+                        iterator.remove()
+                    }
                 }
             }
         }
 
         return result
+    }
+
+    private fun getClassGroup(classId: Int): String {
+        return ModelsConfig.NMS_CLASSES_GROUPS[classId]
+            ?: throw IllegalArgumentException("No class group mapping found for classId: $classId")
     }
 
     private fun iou(boxA: FloatArray, boxB: FloatArray): Float {
