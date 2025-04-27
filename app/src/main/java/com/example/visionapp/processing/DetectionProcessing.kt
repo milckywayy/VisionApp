@@ -15,17 +15,17 @@ object DetectionProcessing {
         return processSortedDetection(sortedDetections)
     }
 
-    private fun calculateBoxArea(box: FloatArray): Float {
-        val width = box[2]
-        val height = box[3]
-        return width * height
-    }
-
     fun processDetectionsByAverageDepth(detections: List<DetectionResult>, depthMap: Bitmap): List<DetectionResult> {
         val sortedDetections = detections
             .sortedByDescending { calculateDepth(it.box, depthMap) }
             .toMutableList()
         return processSortedDetection(sortedDetections)
+    }
+    
+    private fun calculateBoxArea(box: FloatArray): Float {
+        val width = box[2]
+        val height = box[3]
+        return width * height
     }
 
     private fun calculateDepth(box: FloatArray, depthMap: Bitmap): Float {
@@ -58,7 +58,7 @@ object DetectionProcessing {
         return if (pixelCount == 0) 0f else totalDepth / pixelCount
     }
 
-    fun resizeBox(x: Float, y: Float, width: Float, height: Float, scaleFactor: Float): FloatArray {
+    private fun resizeBox(x: Float, y: Float, width: Float, height: Float, scaleFactor: Float): FloatArray {
         val newWidth = width * scaleFactor
         val newHeight = height * scaleFactor
 
