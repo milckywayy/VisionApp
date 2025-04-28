@@ -95,7 +95,7 @@ fun HomeScreen(navController: NavController) {
             addBitmapToBuffer(segmentedImage)
         }
         if(segmentedImage!= null && depthImage!=null){
-            differencialImage =  TriangleMethod(depthImage, segmentedImage).resultBitmap
+            //differencialImage =  TriangleMethod(depthImage, segmentedImage).resultBitmap
             var communicate =  TriangleMethod(depthImage, segmentedImage).analyzeScene()
             Log.d("Communicate", communicate.toString());
         }

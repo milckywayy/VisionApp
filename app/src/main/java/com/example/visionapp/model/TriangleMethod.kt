@@ -20,36 +20,57 @@ class TriangleMethod(
         )
     }
 
-    private fun combineBitmaps(depthBitmap: Bitmap, segmentationBitmap: Bitmap): Bitmap {
-        val scaledDepth = Bitmap.createScaledBitmap(depthBitmap, 512, 1024, true)
-        val width = scaledDepth.width
-        val height = scaledDepth.height
+//    private fun combineBitmaps(depthBitmap: Bitmap, segmentationBitmap: Bitmap): Bitmap {
+//        val scaledDepth = Bitmap.createScaledBitmap(depthBitmap, 512, 1024, true)
+//        val width = scaledDepth.width
+//        val height = scaledDepth.height
+//
+//        val scaledSource = Bitmap.createScaledBitmap(segmentationBitmap, width, height, true)
+//        val outputBitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+//
+//        for (y in 0 until height) {
+//            for (x in 0 until width) {
+//                val grayPixel = scaledDepth.getPixel(x, y)
+//                val grayValue = Color.red(grayPixel)
+//
+//                if (grayValue > 200) {
+//                    val colorPixel = scaledSource.getPixel(x, y)
+//                    outputBitmap.setPixel(x, y, colorPixel)
+//                } else {
+//                    outputBitmap.setPixel(x, y, Color.WHITE)
+//                }
+//            }
+//        }
+//
+//        return outputBitmap
+//    }
+private fun combineBitmaps(depthBitmap: Bitmap, segmentationBitmap: Bitmap): Bitmap {
+    val scaledDepth = Bitmap.createScaledBitmap(depthBitmap, 512, 1024, true)
+    val width = scaledDepth.width
+    val height = scaledDepth.height
+    //val scaledSource = Bitmap.createScaledBitmap(segmentationBitmap, width, height, true)
 
-        val scaledSource = Bitmap.createScaledBitmap(segmentationBitmap, width, height, true)
-        val outputBitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+    val depthPixels = IntArray(width * height)
+    val sourcePixels = IntArray(width * height)
+    val outputPixels = IntArray(width * height)
 
-        for (y in 0 until height) {
-            for (x in 0 until width) {
-                val grayPixel = scaledDepth.getPixel(x, y)
-                val grayValue = Color.red(grayPixel)
+    scaledDepth.getPixels(depthPixels, 0, width, 0, 0, width, height)
+    segmentationBitmap.getPixels(sourcePixels, 0, width, 0, 0, width, height)
 
-                if (grayValue > 200) {
-                    val colorPixel = scaledSource.getPixel(x, y)
-                    outputBitmap.setPixel(x, y, colorPixel)
-                } else {
-                    outputBitmap.setPixel(x, y, Color.WHITE)
-                }
-            }
-        }
-
-        return outputBitmap
+    for (i in depthPixels.indices) {
+        val grayValue = Color.red(depthPixels[i])
+        outputPixels[i] = if (grayValue > 200) sourcePixels[i] else Color.WHITE
     }
+
+    return Bitmap.createBitmap(outputPixels, width, height, Bitmap.Config.ARGB_8888)
+}
+
 
     fun analyzeScene(): Int {
         val image = resultBitmap
 
-        val line1 = findPixelsOnLine(-4.139394, 1400.1, 91..177, 668..1024)
-        val line2 = findPixelsOnLine(4.139394, -718.685, 336..421, 668..1024)
+        val line1 = findPixelsOnLine(-4.139394, 1400.1, 91..177, 668..1024 - 1)
+        val line2 = findPixelsOnLine(4.139394, -718.685, 336..421, 668..1024 - 1)
         //val line3 = findPixelsOnLine(0.0, 668.0, 215..298, 668..669)
 
         val leftAndCrossing = checkLeftAndCrossing(image, line1, line2)
