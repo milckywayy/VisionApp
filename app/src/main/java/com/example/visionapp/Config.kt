@@ -24,4 +24,5 @@ object ModelsConfig {
     const val DET_MODEL_NUM_OF_CLASSES = 7
     const val DET_MODEL_CONFIDENCE_THRESHOLD = 0.25f
     const val DET_MODEL_IOU_THRESHOLD = 0.5f
+    const val VISUAL_DEBUG_MODE = true
 }

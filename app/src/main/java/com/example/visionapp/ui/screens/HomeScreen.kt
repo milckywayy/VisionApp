@@ -28,6 +28,8 @@ import com.example.visionapp.onnxmodels.processing.DetectionPostprocessor
 import com.example.visionapp.onnxmodels.processing.DetectionResult
 import com.example.visionapp.onnxmodels.processing.SegmentationPostprocessor
 import com.example.visionapp.utils.startCameraWithAnalyzer
+import com.example.visionapp.onnxmodels.ModelType
+import com.example.visionapp.ui.common.DropdownMenuControl
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
@@ -50,6 +52,8 @@ fun HomeScreen(navController: NavController) {
             Toast.makeText(context, "Missing camera permission", Toast.LENGTH_SHORT).show()
         }
     }
+    var selectedModelDebug by remember { mutableStateOf<ModelType?>(null) }
+
 
     val segModel = remember { SegmentationModel(CameraConfig.SEGMENTATION_RESOLUTION) }
     val segPostprocessor = remember { SegmentationPostprocessor() }
@@ -80,19 +84,26 @@ fun HomeScreen(navController: NavController) {
     }
 
     fun processImage(bitmap: Bitmap) {
-        val segmentedImage = segModelPredictor.makePredictionsDebug(bitmap)
-        val detectionImage = detModelPredictor.makePredictionsDebug(bitmap)
-        val depthImage = depthModelPredictor.makePredictionsDebug(bitmap)
+        val segmentedImage = segModelPredictor.makePredictions(bitmap)
+        val detectionImage = detModelPredictor.makePredictions(bitmap)
+        val depthImage = depthModelPredictor.makePredictions(bitmap)
 
         if (segmentedImage != null) {
             addBitmapToBuffer(segmentedImage)
         }
-//        if (detectionImage != null) {
-//            addBitmapToBuffer(detectionImage)
-//        }
-//        if (depthImage != null) {
-//            addBitmapToBuffer(depthImage)
-//        }
+    }
+
+    fun processImageDebug(bitmap: Bitmap) {
+        val segmentedImage = segModelPredictor.makePredictionsDebug(bitmap)
+        val detectionImage = detModelPredictor.makePredictionsDebug(bitmap)
+        val depthImage = depthModelPredictor.makePredictionsDebug(bitmap)
+
+        when (selectedModelDebug){
+            ModelType.DEPTH -> depthImage?.let { addBitmapToBuffer(it) }
+            ModelType.DETECTION -> detectionImage?.let { addBitmapToBuffer(it) }
+            ModelType.SEGMENTATION -> segmentedImage?.let { addBitmapToBuffer(it) }
+            else -> segmentedImage?.let { addBitmapToBuffer(it) }
+        }
     }
 
     fun startCapturing() {
@@ -113,7 +124,12 @@ fun HomeScreen(navController: NavController) {
                     lastProcessedTime = currentTime
 
                     coroutineScope.launch(Dispatchers.Default) {
-                        processImage(bitmap)
+                        if (ModelsConfig.VISUAL_DEBUG_MODE) {
+                            processImageDebug(bitmap)
+                        }
+                        else {
+                            processImage(bitmap)
+                        }
                     }
                 } else {
                     bitmap.recycle()
@@ -137,6 +153,16 @@ fun HomeScreen(navController: NavController) {
         verticalArrangement = Arrangement.SpaceEvenly,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
+        if(ModelsConfig.VISUAL_DEBUG_MODE) {
+            DropdownMenuControl(
+                items = ModelType.entries,
+                selectedItem = selectedModelDebug,
+                initialText = "Select which output to display",
+                onItemSelected = { selectedModelDebug = it },
+                labelProvider = { it.label }
+            )
+        }
+
         bitmapBuffer.lastOrNull()?.let { bitmap ->
             Image(
                 bitmap = bitmap.asImageBitmap(),
