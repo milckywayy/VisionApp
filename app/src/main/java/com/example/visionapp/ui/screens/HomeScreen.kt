@@ -19,6 +19,7 @@ import com.example.visionapp.ui.common.TextButton
 import com.example.visionapp.CameraConfig
 import androidx.camera.lifecycle.ProcessCameraProvider
 import com.example.visionapp.ModelsConfig
+import com.example.visionapp.model.TriangleMethod
 import com.example.visionapp.onnxmodels.ModelPredictor
 import com.example.visionapp.onnxmodels.models.DepthModel
 import com.example.visionapp.onnxmodels.models.DetectionModel
@@ -30,6 +31,7 @@ import com.example.visionapp.onnxmodels.processing.SegmentationPostprocessor
 import com.example.visionapp.utils.startCameraWithAnalyzer
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import android.util.Log;
 
 @Composable
 fun HomeScreen(navController: NavController) {
@@ -80,12 +82,22 @@ fun HomeScreen(navController: NavController) {
     }
 
     fun processImage(bitmap: Bitmap) {
-        val segmentedImage = segModelPredictor.makePredictionsDebug(bitmap)
+        val segmentedImage = segModelPredictor.makePredictions(bitmap)
+        val segmentedImageColor = segModelPredictor.makePredictionsDebug(bitmap)
         val detectionImage = detModelPredictor.makePredictionsDebug(bitmap)
-        val depthImage = depthModelPredictor.makePredictionsDebug(bitmap)
+        val depthImage = depthModelPredictor.makePredictions(bitmap)
+
+        var differencialImage: Bitmap? = null
+
+
 
         if (segmentedImage != null) {
             addBitmapToBuffer(segmentedImage)
+        }
+        if(segmentedImage!= null && depthImage!=null){
+            differencialImage =  TriangleMethod(depthImage, segmentedImage).resultBitmap
+            var communicate =  TriangleMethod(depthImage, segmentedImage).analyzeScene()
+            Log.d("Communicate", communicate.toString());
         }
 //        if (detectionImage != null) {
 //            addBitmapToBuffer(detectionImage)
