@@ -70,22 +70,19 @@ object DetectionProcessing {
 
     private fun processSortedDetection(sortedDetections: MutableList<DetectionResult>): List<DetectionResult> {
         val result = mutableListOf<DetectionResult>()
+        val addedGroups = mutableSetOf<String>()
 
-        while (sortedDetections.isNotEmpty()) {
-            val best = sortedDetections.removeAt(0)
-            result.add(best)
-
-            val iterator = sortedDetections.iterator()
-            while (iterator.hasNext()) {
-                val det = iterator.next()
-                if (getClassGroup(best.classId) == getClassGroup(det.classId)) {
-                    iterator.remove()
-                }
+        for (detection in sortedDetections) {
+            val group = getClassGroup(detection.classId)
+            if (group !in addedGroups) {
+                result.add(detection)
+                addedGroups.add(group)
             }
         }
 
         return result
     }
+
 
     private fun getClassGroup(classId: Int): String {
         return ModelsConfig.DETECTION_DISTANCE_ESTIMATION_GROUPS[classId]
