@@ -72,7 +72,8 @@ class DetectionPostprocessor : IPostprocessor<FloatArray, List<DetectionResult>>
     }
 
     private fun getClassGroup(classId: Int): String {
-        return ModelsConfig.NMS_CLASSES_GROUPS[classId]
+        return ModelsConfig.DETECTION_NMS_GROUPS[classId]
+            ?.toString()
             ?: throw IllegalArgumentException("No class group mapping found for classId: $classId")
     }
 

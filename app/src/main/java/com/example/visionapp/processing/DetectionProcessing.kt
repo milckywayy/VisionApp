@@ -86,6 +86,7 @@ object DetectionProcessing {
 
     private fun getClassGroup(classId: Int): String {
         return ModelsConfig.DETECTION_DISTANCE_ESTIMATION_GROUPS[classId]
+            ?.toString()
             ?: throw IllegalArgumentException("No class group mapping found for classId: $classId")
     }
 }
