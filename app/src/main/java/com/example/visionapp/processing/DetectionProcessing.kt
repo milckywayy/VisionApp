@@ -21,6 +21,50 @@ object DetectionProcessing {
             .toMutableList()
         return processSortedDetection(sortedDetections)
     }
+
+    fun processDetectionsByBoxSizeDebug(detections: List<DetectionResult>, originalPhoto: Bitmap): Bitmap {
+        val sortedDetections = detections
+            .sortedByDescending { calculateBoxArea(it.box) }
+            .toMutableList()
+        return drawBoundinBoxes(originalPhoto,processSortedDetection(sortedDetections))
+    }
+
+    fun processDetectionsByAverageDepthDebug(detections: List<DetectionResult>, depthMap: Bitmap, originalPhoto: Bitmap): Bitmap {
+        val sortedDetections = detections
+            .sortedByDescending { calculateDepth(it.box, depthMap) }
+            .toMutableList()
+        return drawBoundinBoxes(originalPhoto,processSortedDetection(sortedDetections))
+    }
+
+    private fun drawBoundinBoxes(bitmap: Bitmap, detections: List<DetectionResult>): Bitmap {
+        val result = bitmap.copy(Bitmap.Config.ARGB_8888, true)
+        val canvas = android.graphics.Canvas(result)
+        val paint = android.graphics.Paint().apply {
+            style = android.graphics.Paint.Style.STROKE
+            color = android.graphics.Color.RED
+            strokeWidth = 3f
+        }
+        val textPaint = android.graphics.Paint().apply {
+            color = android.graphics.Color.YELLOW
+            textSize = 32f
+        }
+
+        val imgWidth = bitmap.width.toFloat()
+        val imgHeight = bitmap.height.toFloat()
+
+        for (det in detections) {
+            val (x, y, w, h) = det.box
+            val left = (x - w / 2) * imgWidth
+            val top = (y - h / 2) * imgHeight
+            val right = (x + w / 2) * imgWidth
+            val bottom = (y + h / 2) * imgHeight
+
+            canvas.drawRect(left, top, right, bottom, paint)
+            canvas.drawText("Cls ${det.classId}: ${"%.2f".format(det.confidence)}", left, top - 10, textPaint)
+        }
+
+        return result
+    }
     
     private fun calculateBoxArea(box: FloatArray): Float {
         val width = box[2]
@@ -29,12 +73,15 @@ object DetectionProcessing {
     }
 
     private fun calculateDepth(box: FloatArray, depthMap: Bitmap): Float {
-        val resizedBox = resizeBox(box[0],box[1],box[2],box[3], DEPTH_RESOLUTION.width.toFloat() / DETECTION_RESOLUTION.width)
-        val (center_x,center_y,w,h) = resizedBox
-        val left = (center_x - w / 2).toInt()
-        val top = (center_y - h / 2).toInt()
-        val right = (center_x + w / 2).toInt()
-        val bottom = (center_y + h / 2).toInt()
+        val x = box[0]
+        val y = box[1]
+        val w = box[2]
+        val h = box[3]
+
+        val left = ((x - w / 2) * depthMap.width).toInt()
+        val top = ((y - h / 2) * depthMap.height).toInt()
+        val right = ((x + w / 2) * depthMap.width).toInt()
+        val bottom = ((y + h / 2) * depthMap.height).toInt()
 
         val clampedLeft = left.coerceIn(0, depthMap.width - 1)
         val clampedTop = top.coerceIn(0, depthMap.height - 1)
