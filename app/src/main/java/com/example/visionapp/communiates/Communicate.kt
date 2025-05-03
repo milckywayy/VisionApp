@@ -1,36 +1,31 @@
 package com.example.visionapp.communiates
 
-enum class CommunicatePriority(val message: String, val priority: Int) {
-    RED_LIGHT("Uwaga, czerwone światło", 1),
-    NO_CROSSING("Uwaga, brak przejścia (zawróć)", 2),
-    GREEN_LIGHT("Zielone światło", 3),
-    CROSSING("Uwaga, wchodzisz na przejście dla pieszych", 4),
-    NARROW_PASSAGE("Uwaga, wąskie przejście", 5),
-    MOVE_LEFT("Przesuń się w lewo, bo jesteś za blisko krawędzi/nie obejdziesz przeszkody", 6),
-    MOVE_RIGHT("Przesuń się w prawo, bo jesteś za blisko krawędzi/nie obejdziesz przeszkody", 6),
-    SIGN("Uwaga, jakiś znak", 7);
-
-    companion object {
-        fun fromMessage(message: String): CommunicatePriority? =
-            values().find { it.message == message }
-    }
+enum class CommunicateCategory{
+    LIGHTS,
+    SIGNS,
+    PASSAGE,
+    CROSSING
 }
 
+enum class CommunicateType(val message: String, val priority: Int, val category: CommunicateCategory) {
+    RED_LIGHT("Warning, red light", 1, CommunicateCategory.LIGHTS),
+    NO_PASSAGE("Warning, no passage (turn back)", 2, CommunicateCategory.PASSAGE),
+    GREEN_LIGHT("Green light", 3, CommunicateCategory.LIGHTS),
+    CROSSING("Warning, you are entering a pedestrian crossing", 4, CommunicateCategory.CROSSING),
+    NARROW_PASSAGE("Warning, narrow passage", 5, CommunicateCategory.PASSAGE),
+    MOVE_LEFT("Move left, you're too close to the edge / obstacle can't be bypassed", 6, CommunicateCategory.PASSAGE),
+    MOVE_RIGHT("Move right, you're too close to the edge / obstacle can't be bypassed", 6, CommunicateCategory.PASSAGE),
+    SIGN("Warning, there is a sign", 7, CommunicateCategory.SIGNS);
+}
+
+
 data class Communicate(
-    val message: String,
-    val priority: Int,
+    val communicateType: CommunicateType,
     val timestamp: Long = System.currentTimeMillis()
 ) : Comparable<Communicate> {
 
-    constructor(message: String) : this(
-        message = message,
-        priority = CommunicatePriority.fromMessage(message)
-            ?.priority
-            ?: throw IllegalArgumentException("No priority for: $message")
-    )
-
     override fun compareTo(other: Communicate): Int {
-        val priorityCompare = this.priority.compareTo(other.priority)
+        val priorityCompare = this.communicateType.priority.compareTo(other.communicateType.priority)
         return if (priorityCompare != 0) {
             priorityCompare
         } else {

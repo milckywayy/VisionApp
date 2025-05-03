@@ -26,3 +26,8 @@ object ModelsConfig {
     const val DET_MODEL_IOU_THRESHOLD = 0.5f
     const val VISUAL_DEBUG_MODE = true
 }
+
+object CommunicateConfig{
+    const val CLEANUP_CHECK_INTERVAL_MS = 2_000L
+    const val COMMUNICATE_MAX_AGE_MS = 10_000L
+}
