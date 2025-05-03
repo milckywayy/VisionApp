@@ -5,6 +5,7 @@ import com.example.visionapp.CameraConfig.DEPTH_RESOLUTION
 import com.example.visionapp.CameraConfig.DETECTION_RESOLUTION
 import com.example.visionapp.ModelsConfig
 import com.example.visionapp.onnxmodels.processing.DetectionResult
+import com.example.visionapp.utils.scaleBitmap
 
 object DetectionProcessing {
 
@@ -37,7 +38,7 @@ object DetectionProcessing {
     }
 
     private fun drawBoundinBoxes(bitmap: Bitmap, detections: List<DetectionResult>): Bitmap {
-        val result = bitmap.copy(Bitmap.Config.ARGB_8888, true)
+        val result = scaleBitmap(bitmap, DETECTION_RESOLUTION)
         val canvas = android.graphics.Canvas(result)
         val paint = android.graphics.Paint().apply {
             style = android.graphics.Paint.Style.STROKE
@@ -54,10 +55,10 @@ object DetectionProcessing {
 
         for (det in detections) {
             val (x, y, w, h) = det.box
-            val left = (x - w / 2) * imgWidth
-            val top = (y - h / 2) * imgHeight
-            val right = (x + w / 2) * imgWidth
-            val bottom = (y + h / 2) * imgHeight
+            val left = (x - w / 2)
+            val top = (y - h / 2)
+            val right = (x + w / 2)
+            val bottom = (y + h / 2)
 
             canvas.drawRect(left, top, right, bottom, paint)
             canvas.drawText("Cls ${det.classId}: ${"%.2f".format(det.confidence)}", left, top - 10, textPaint)
