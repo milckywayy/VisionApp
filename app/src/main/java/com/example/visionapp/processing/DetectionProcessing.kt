@@ -1,6 +1,7 @@
 package com.example.visionapp.processing
 
 import android.graphics.Bitmap
+import android.util.Log
 import com.example.visionapp.CameraConfig.DEPTH_RESOLUTION
 import com.example.visionapp.CameraConfig.DETECTION_RESOLUTION
 import com.example.visionapp.ModelsConfig
@@ -89,31 +90,21 @@ object DetectionProcessing {
         val clampedRight = right.coerceIn(0, depthMap.width - 1)
         val clampedBottom = bottom.coerceIn(0, depthMap.height - 1)
 
+        val width = clampedRight - clampedLeft + 1
+        val height = clampedBottom - clampedTop + 1
+
+        if (width <= 0 || height <= 0) return 0f
+
+        val pixels = IntArray(width * height)
+        depthMap.getPixels(pixels, 0, width, clampedLeft, clampedTop, width, height)
+
         var totalDepth = 0f
-        var pixelCount = 0
-
-        for (y in clampedTop until clampedBottom) {
-            for (x in clampedLeft until clampedRight) {
-                val pixelColor = depthMap.getPixel(x, y)
-
-                val depth = (pixelColor shr 16 and 0xFF) / 255f
-
-                totalDepth += depth
-                pixelCount++
-            }
+        for (pixel in pixels) {
+            val depth = (pixel shr 16 and 0xFF) / 255f
+            totalDepth += depth
         }
 
-        return if (pixelCount == 0) 0f else totalDepth / pixelCount
-    }
-
-    private fun resizeBox(x: Float, y: Float, width: Float, height: Float, scaleFactor: Float): FloatArray {
-        val newWidth = width * scaleFactor
-        val newHeight = height * scaleFactor
-
-        val newX = x - (newWidth - width) / 2
-        val newY = y - (newHeight - height) / 2
-
-        return floatArrayOf(newX, newY, newWidth, newHeight)
+        return totalDepth / pixels.size
     }
 
     private fun processSortedDetection(sortedDetections: MutableList<DetectionResult>): List<DetectionResult> {
