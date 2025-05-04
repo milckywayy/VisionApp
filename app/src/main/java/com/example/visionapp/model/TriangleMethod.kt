@@ -2,10 +2,12 @@ package com.example.visionapp.model
 
 import android.graphics.Bitmap
 import android.graphics.Color
+import com.example.visionapp.CameraConfig.SEGMENTATION_RESOLUTION
 
 class TriangleMethod(
     depthBitmap: Bitmap,
-    segmentationBitmap: Bitmap
+    segmentationBitmap: Bitmap,
+    private val depthThreshold: Int = 200
 ) {
     val resultBitmap: Bitmap = combineBitmaps(depthBitmap, segmentationBitmap)
 
@@ -19,28 +21,33 @@ class TriangleMethod(
             11 to "tram"
         )
     }
+    /*
+    0: 'brak',
+    1: 'Wąskie przejście',
+    2: 'Przesuń się do prawej',
+    3: 'Przesuń się do lewej',
+    4: 'Uwaga przeszkoda. Przesuń się gdzieś.',
+    5: 'Zawróć',*/
 
     private fun combineBitmaps(depthBitmap: Bitmap, segmentationBitmap: Bitmap): Bitmap {
-        val scaledDepth = Bitmap.createScaledBitmap(depthBitmap, 512, 1024, true)
-        val width = scaledDepth.width
-        val height = scaledDepth.height
-
+        val width = SEGMENTATION_RESOLUTION.width
+        val height = SEGMENTATION_RESOLUTION.height
+        val scaledDepth = Bitmap.createScaledBitmap(depthBitmap, width, height, true)
         val scaledSource = Bitmap.createScaledBitmap(segmentationBitmap, width, height, true)
         val outputBitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
 
-        for (y in 0 until height) {
-            for (x in 0 until width) {
-                val grayPixel = scaledDepth.getPixel(x, y)
-                val grayValue = Color.red(grayPixel)
+        val depthPixels = IntArray(width * height)
+        val sourcePixels = IntArray(width * height)
+        val outputPixels = IntArray(width * height)
 
-                if (grayValue > 200) {
-                    val colorPixel = scaledSource.getPixel(x, y)
-                    outputBitmap.setPixel(x, y, colorPixel)
-                } else {
-                    outputBitmap.setPixel(x, y, Color.WHITE)
-                }
-            }
+        scaledDepth.getPixels(depthPixels, 0, width, 0, 0, width, height)
+        scaledSource.getPixels(sourcePixels, 0, width, 0, 0, width, height)
+
+        for (i in depthPixels.indices) {
+            val grayValue = Color.red(depthPixels[i])
+            outputPixels[i] = if (grayValue > depthThreshold) sourcePixels[i] else Color.WHITE
         }
+        outputBitmap.setPixels(outputPixels, 0, width, 0, 0, width, height)
 
         return outputBitmap
     }
@@ -48,22 +55,27 @@ class TriangleMethod(
     fun analyzeScene(): Int {
         val image = resultBitmap
 
-        val line1 = findPixelsOnLine(-4.139394, 1400.1, 91..177, 668..1024)
-        val line2 = findPixelsOnLine(4.139394, -718.685, 336..421, 668..1024)
+        val width = SEGMENTATION_RESOLUTION.width
+        val height = SEGMENTATION_RESOLUTION.height
+        val line1 = findPixelsOnLine(-4.139394, 1400.1, (width/6).toInt()..(width/6*2).toInt(), (height/6*4).toInt()..(height-1).toInt())
+        val line2 = findPixelsOnLine(4.139394, -718.685, (width/6*4).toInt()..(width/6*5).toInt(), (height/6*4).toInt()..(height-1).toInt())
         //val line3 = findPixelsOnLine(0.0, 668.0, 215..298, 668..669)
 
-        val leftAndCrossing = checkLeftAndCrossing(image, line1, line2)
+        val imagePixels = IntArray(image.width * image.height)
+        image.getPixels(imagePixels, 0, image.width, 0, 0, image.width, image.height)
 
-        if (leftAndCrossing["crossing"]!!.isEmpty()) {
-            val right = checkRight(image, line2)
-            val inFront = checkInFront(image)
+        val (hasLeft, hasCrossing) = checkLeftAndCrossing(imagePixels, image.width, line1, line2)
+
+        if (!hasCrossing) {
+            val hasFront = checkInFront(imagePixels, image.width,image.height)
+            val hasRight = checkRight(imagePixels, image.width, line2)
 
             return when {
-                inFront.isEmpty() && leftAndCrossing["left"]!!.isNotEmpty() && right.isNotEmpty() -> 1
-                inFront.isEmpty() && leftAndCrossing["left"]!!.isNotEmpty() && right.isEmpty() -> 2
-                inFront.isEmpty() && leftAndCrossing["left"]!!.isEmpty() && right.isNotEmpty() -> 3
-                inFront.isEmpty() -> 0
-                leftAndCrossing["left"]!!.isEmpty() && right.isEmpty() -> 4
+                !hasFront && hasLeft && hasRight -> 1
+                !hasFront && hasLeft && !hasRight -> 2
+                !hasFront && !hasLeft && hasRight -> 3
+                !hasFront -> 0
+                !hasLeft && !hasRight -> 4
                 else -> 5
             }
         } else {
@@ -72,7 +84,7 @@ class TriangleMethod(
     }
 
     private fun findPixelsOnLine(
-        m: Double,
+        a: Double,
         b: Double,
         xRange: IntRange,
         yRange: IntRange,
@@ -80,9 +92,11 @@ class TriangleMethod(
     ): List<Pair<Int, Int>> {
         val pixels = mutableListOf<Pair<Int, Int>>()
         for (x in xRange) {
-            for (y in yRange) {
-                val yOnLine = m * x + b
-                if (Math.abs(y - yOnLine) <= tolerance) {
+            val yOnLine = a * x + b
+            val yStart = (yOnLine - tolerance).toInt()
+            val yEnd = (yOnLine + tolerance).toInt()
+            for (y in yStart..yEnd) {
+                if (y in yRange) {
                     pixels.add(Pair(x, y))
                 }
             }
@@ -91,68 +105,71 @@ class TriangleMethod(
     }
 
     private fun checkLeftAndCrossing(
-        image: Bitmap,
+        pixels: IntArray,
+        width: Int,
         line1: List<Pair<Int, Int>>,
         line2: List<Pair<Int, Int>>
-    ): Map<String, MutableSet<String>> {
+    ): Pair<Boolean, Boolean>  {
         val line2Cords = mutableMapOf<Int, Int>()
         for (p in line2) {
             line2Cords[p.second] = p.first
         }
 
-        val result = mutableMapOf(
-            "left" to mutableSetOf<String>(),
-            "crossing" to mutableSetOf<String>()
-        )
+        var hasLeft = false
+        var hasCrossing = false
 
         for (point in line1) {
-            val thing = Color.red(image.getPixel(point.first, point.second))
-            if (thing in nonValidClasses) {
-                val className = nonValidClasses[thing]!!
+            val (x, y) = point
+            val classId = Color.red(pixels[y * width + x])
+            if (classId in nonValidClasses) {
+                val className = nonValidClasses[classId]!!
                 var x1 = point.first
                 val maxX = line2Cords[point.second] ?: continue
                 while (x1 < maxX) {
                     x1++
-                    if (x1 >= image.width) break
-                    val nextColor = image.getPixel(x1, point.second)
-                    if (nextColor == thing) continue else break
+                    if (x1 >= width) break
+                    val nextColor = Color.red(pixels[y * width + x1])
+                    if (nextColor == classId)
+                        continue
+                    else
+                        break
                 }
                 if (x1 >= maxX) {
-                    result["crossing"]!!.add(className)
+                    hasCrossing = true
                 } else {
-                    result["left"]!!.add(className)
+                    hasLeft = true
                 }
             }
         }
 
-        return result
+        return Pair(hasLeft, hasCrossing)
     }
 
-    private fun checkRight(image: Bitmap, line2: List<Pair<Int, Int>>): Set<String> {
-        val found = mutableSetOf<String>()
-        for (p in line2) {
-            val thing = Color.red(image.getPixel(p.first, p.second))
-            if (thing in nonValidClasses) {
-                found.add(nonValidClasses[thing]!!)
+    private fun checkRight(pixels: IntArray, width: Int, line2: List<Pair<Int, Int>>): Boolean {
+        for ((x,y) in line2) {
+            val classId = Color.red(pixels[y * width + x])
+            if (classId in nonValidClasses) {
+                return true
             }
         }
-        return found
+        return false
     }
 
-    private fun checkInFront(image: Bitmap): Set<String> {
-        val p1 = Pair(214, 1024)
-        val p2 = Pair(214, 683)
-        val p3 = Pair(298, 1024)
+    private fun checkInFront(pixels: IntArray, width: Int, height: Int): Boolean {
+        val p1 = Pair((width*0.41).toInt(), height-1)
+        val p2 = Pair((width*0.41).toInt(), height/3*2)
+        val p3 = Pair((width*0.58).toInt(), height-1)
 
-        val found = mutableSetOf<String>()
         for (y in p2.second until p1.second) {
             for (x in p2.first until p3.first) {
-                val thing = Color.red(image.getPixel(x, y))
-                if (thing in nonValidClasses) {
-                    found.add(nonValidClasses[thing]!!)
+                val classId = Color.red(pixels[y * width + x])
+                if (classId in nonValidClasses) {
+                    return true
                 }
             }
         }
-        return found
+
+        return false
     }
 }
+
