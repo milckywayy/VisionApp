@@ -75,4 +75,6 @@ object ModelsConfig {
         12 to DetectionDistanceGroup.PEDESTRIANS_LANE_SIGN
     )
 
+    const val VISUAL_DEBUG_MODE = true
+  
 }
