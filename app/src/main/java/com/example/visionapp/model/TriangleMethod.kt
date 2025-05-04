@@ -122,7 +122,6 @@ class TriangleMethod(
             val (x, y) = point
             val classId = Color.red(pixels[y * width + x])
             if (classId in nonValidClasses) {
-                val className = nonValidClasses[classId]!!
                 var x1 = point.first
                 val maxX = line2Cords[point.second] ?: continue
                 while (x1 < maxX) {
