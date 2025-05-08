@@ -49,7 +49,10 @@ class TriangleMethod(
         }
         outputBitmap.setPixels(outputPixels, 0, width, 0, 0, width, height)
 
-        return outputBitmap
+        val final  = MedianFilter.applyMedianFilter(outputBitmap, 7)
+
+
+        return final
     }
 
     fun analyzeScene(): Int {
