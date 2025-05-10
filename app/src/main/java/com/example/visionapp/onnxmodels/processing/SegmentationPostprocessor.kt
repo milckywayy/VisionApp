@@ -2,8 +2,6 @@ package com.example.visionapp.onnxmodels.processing
 
 import android.graphics.Bitmap
 import android.graphics.Color
-import androidx.core.graphics.createBitmap
-import androidx.core.graphics.set
 
 class SegmentationPostprocessor : IPostprocessor<IntArray, Bitmap?> {
 
@@ -39,34 +37,48 @@ class SegmentationPostprocessor : IPostprocessor<IntArray, Bitmap?> {
         if (array.isEmpty()) return null
         val width = array[0].size
         val height = array.size
-        val bitmap = createBitmap(width, height, Bitmap.Config.ARGB_8888)
+        val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+        val pixels = IntArray(width * height)
 
         for (y in 0 until height) {
+            val row = array[y]
             for (x in 0 until width) {
-                if(createColoured) {
-                    bitmap[x, y] = getColorFromClassId(array[y][x])
+                val index = y * width + x
+                val value = row[x]
+                val color: Int
+                if (createColoured) {
+                    color = getColorFromClassId(value)
+                } else {
+                    color = Color.rgb(value, value, value)
                 }
-                else{
-                    val colourValue = array[y][x]
-                    bitmap[x, y] = Color.rgb(colourValue, colourValue, colourValue)
-                }
+                pixels[index] = color
             }
         }
+
+        bitmap.setPixels(pixels, 0, width, 0, 0, width, height)
         return bitmap
     }
 
     private fun addColouredMaskToOriginalImage(modelOutput: Array<IntArray>, inputBitmap: Bitmap): Bitmap {
         val width = inputBitmap.width
         val height = inputBitmap.height
-        val resultBitmap = inputBitmap.copy(Bitmap.Config.ARGB_8888, true)
+        val origPixels = IntArray(width * height)
+        inputBitmap.getPixels(origPixels, 0, width, 0, 0, width, height)
+
+        val resultPixels = IntArray(width * height)
 
         for (y in 0 until height) {
+            val row = modelOutput[y]
             for (x in 0 until width) {
-                val overlayColor = colorMap[modelOutput[y][x]] ?: intArrayOf(0, 0, 0, 192)
-                val origColor = inputBitmap.getPixel(x, y)
-                resultBitmap.setPixel(x, y, blendColors(origColor, overlayColor))
+                val index = y * width + x
+                val origColor = origPixels[index]
+                val overlayColor = colorMap[row[x]] ?: intArrayOf(0, 0, 0, 192)
+                resultPixels[index] = blendColors(origColor, overlayColor)
             }
         }
+
+        val resultBitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+        resultBitmap.setPixels(resultPixels, 0, width, 0, 0, width, height)
         return resultBitmap
     }
 
