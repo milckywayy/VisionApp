@@ -34,7 +34,6 @@ class TriangleMethod(
         val width = SEGMENTATION_RESOLUTION.width
         val height = SEGMENTATION_RESOLUTION.height
         val scaledDepth = Bitmap.createScaledBitmap(depthBitmap, width, height, true)
-        val scaledSource = Bitmap.createScaledBitmap(segmentationBitmap, width, height, true)
         val outputBitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
 
         val depthPixels = IntArray(width * height)
@@ -42,7 +41,7 @@ class TriangleMethod(
         val outputPixels = IntArray(width * height)
 
         scaledDepth.getPixels(depthPixels, 0, width, 0, 0, width, height)
-        scaledSource.getPixels(sourcePixels, 0, width, 0, 0, width, height)
+        segmentationBitmap.getPixels(sourcePixels, 0, width, 0, 0, width, height)
 
         for (i in depthPixels.indices) {
             val grayValue = Color.red(depthPixels[i])
