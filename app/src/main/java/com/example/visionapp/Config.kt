@@ -23,6 +23,7 @@ object ModelsConfig {
     const val DET_MODEL_NUM_OF_CLASSES = 13
     const val DET_MODEL_CONFIDENCE_THRESHOLD = 0.25f
     const val DET_MODEL_IOU_THRESHOLD = 0.5f
+    const val VISUAL_DEBUG_MODE = true
 
     enum class DetectionNmsGroup {
         GREEN_LIGHT,
@@ -73,7 +74,9 @@ object ModelsConfig {
         11 to DetectionDistanceGroup.PEDESTRIANS_LANE_SIGN,
         12 to DetectionDistanceGroup.PEDESTRIANS_LANE_SIGN
     )
+}
 
-    const val VISUAL_DEBUG_MODE = true
-  
+object CommunicateConfig{
+    const val CLEANUP_CHECK_INTERVAL_MS = 2_000L
+    const val COMMUNICATE_MAX_AGE_MS = 10_000L
 }

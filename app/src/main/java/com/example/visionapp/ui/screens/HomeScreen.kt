@@ -30,6 +30,7 @@ import com.example.visionapp.onnxmodels.processing.SegmentationPostprocessor
 import com.example.visionapp.utils.startCameraWithAnalyzer
 import com.example.visionapp.onnxmodels.ModelType
 import com.example.visionapp.ui.common.DropdownMenuControl
+import com.example.visionapp.utils.TextToSpeechManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
@@ -56,7 +57,6 @@ fun HomeScreen(navController: NavController) {
     }
     var selectedModelDebug by remember { mutableStateOf<ModelType?>(null) }
 
-
     val segModel = remember { SegmentationModel(CameraConfig.SEGMENTATION_RESOLUTION) }
     val segPostprocessor = remember { SegmentationPostprocessor() }
     val segModelPredictor = remember { ModelPredictor<IntArray, Bitmap?>(segModel, segPostprocessor) }
@@ -67,6 +67,7 @@ fun HomeScreen(navController: NavController) {
     val depthPostprocessor = remember { DepthPostprocessor() }
     val depthModelPredictor = remember { ModelPredictor<FloatArray, Bitmap?>(depthModel, depthPostprocessor) }
 
+    val tts = remember { TextToSpeechManager(context) }
 
     LaunchedEffect(Unit) {
         requestPermissionLauncher.launch(Manifest.permission.CAMERA)
