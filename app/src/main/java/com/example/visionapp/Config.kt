@@ -80,3 +80,10 @@ object CommunicateConfig{
     const val CLEANUP_CHECK_INTERVAL_MS = 2_000L
     const val COMMUNICATE_MAX_AGE_MS = 10_000L
 }
+
+object TriangleConfig {
+    const val LINE_1_a = -4.139394
+    const val LINE_1_b = 1400.1
+    const val LINE_2_a = 4.139394
+    const val LINE_2_b =-718.685
+}
