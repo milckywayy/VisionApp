@@ -2,6 +2,7 @@ package com.example.visionapp.ui.screens
 
 import android.Manifest
 import android.graphics.Bitmap
+import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -19,6 +20,9 @@ import com.example.visionapp.ui.common.TextButton
 import com.example.visionapp.CameraConfig
 import androidx.camera.lifecycle.ProcessCameraProvider
 import com.example.visionapp.ModelsConfig
+import com.example.visionapp.communiates.CommunicateGenerator
+import com.example.visionapp.communiates.CommunicateQueue
+import com.example.visionapp.model.TriangleMethod
 import com.example.visionapp.onnxmodels.ModelPredictor
 import com.example.visionapp.onnxmodels.models.DepthModel
 import com.example.visionapp.onnxmodels.models.DetectionModel
@@ -29,6 +33,7 @@ import com.example.visionapp.onnxmodels.processing.DetectionResult
 import com.example.visionapp.onnxmodels.processing.SegmentationPostprocessor
 import com.example.visionapp.utils.startCameraWithAnalyzer
 import com.example.visionapp.onnxmodels.ModelType
+import com.example.visionapp.processing.DetectionProcessing
 import com.example.visionapp.ui.common.DropdownMenuControl
 import com.example.visionapp.utils.TextToSpeechManager
 import kotlinx.coroutines.Dispatchers
@@ -88,12 +93,25 @@ fun HomeScreen(navController: NavController) {
 
     fun processImage(bitmap: Bitmap) {
         val segmentedImage = segModelPredictor.makePredictions(bitmap)
-        val detectionImage = detModelPredictor.makePredictions(bitmap)
+        val detectionResults = detModelPredictor.makePredictions(bitmap)
         val depthImage = depthModelPredictor.makePredictions(bitmap)
+
+        val processedDetectionResults = DetectionProcessing.processDetectionsByBoxSize(detectionResults)
+        CommunicateGenerator.generateCommunicatesFromDetection(processedDetectionResults)
+        if (segmentedImage != null && depthImage != null){
+            val triangle = TriangleMethod(depthImage, segmentedImage)
+            CommunicateGenerator.generateCommunicatesFromTriangle(triangle.analyzeScene())
+        }
+        /*val tag = "CommunicateQueue"
+        val messages = CommunicateQueue.allElements()
+            .joinToString(separator = "\n") { it.communicateType.message }
+
+        Log.d(tag, "Current communicates in queue:\n$messages")*/
 
         if (segmentedImage != null) {
             addBitmapToBuffer(segmentedImage)
         }
+
     }
 
     fun processImageDebug(bitmap: Bitmap) {

@@ -15,7 +15,11 @@ enum class CommunicateType(val message: String, val priority: Int, val category:
     NARROW_PASSAGE("Warning, narrow passage", 5, CommunicateCategory.PASSAGE),
     MOVE_LEFT("Move left, you're too close to the edge / obstacle can't be bypassed", 6, CommunicateCategory.PASSAGE),
     MOVE_RIGHT("Move right, you're too close to the edge / obstacle can't be bypassed", 6, CommunicateCategory.PASSAGE),
-    SIGN("Warning, there is a sign", 7, CommunicateCategory.SIGNS);
+    NO_PEDESTRIANS("Warning, pedestrians are forbidden to enter this area", 2, CommunicateCategory.SIGNS),
+    PEDESTRIANS_TO_THE_LEFT("Warning, pedestrians should move on the left side", 7, CommunicateCategory.SIGNS),
+    PEDESTRIANS_TO_THE_RIGHT("Warning, pedestrians should move on the right side", 7, CommunicateCategory.SIGNS),
+    COMMON_AREA("You are entering a common area for pedestrians and bikes", 7, CommunicateCategory.SIGNS),
+    OBSTACLE("Warning, there is an obstacle in front of you", 6, CommunicateCategory.PASSAGE);
 }
 
 
