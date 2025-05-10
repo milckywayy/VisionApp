@@ -3,7 +3,14 @@ package com.example.visionapp.utils
 import android.content.Context
 import android.speech.tts.TextToSpeech
 import com.example.visionapp.LocalizationConfig
+import com.example.visionapp.communiates.CommunicateQueue
 import com.example.visionapp.model.SpeechPriority
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 import java.util.*
 
 
@@ -15,6 +22,8 @@ class TextToSpeechManager(
 
     private var tts: TextToSpeech? = null
     private var isReady = false
+    private val job = SupervisorJob()
+    private val scope = CoroutineScope(Dispatchers.Default + job)
 
     init {
         tts = TextToSpeech(context, this)
@@ -28,6 +37,8 @@ class TextToSpeechManager(
             } else {
                 isReady = true
                 onReady?.invoke()
+
+                startQueueMonitor()
             }
         } else {
             throw IllegalStateException("Failed to initialize TTS")
@@ -36,6 +47,16 @@ class TextToSpeechManager(
 
     fun isSpeaking(): Boolean {
         return tts?.isSpeaking == true
+    }
+
+    fun speakNextFromQueue(){
+        if(CommunicateQueue.isEmpty()) return
+
+        val communicate = CommunicateQueue.poll()
+        val message = communicate?.communicateType?.message
+        if (!message.isNullOrEmpty()){
+            tts?.speak(message, TextToSpeech.QUEUE_ADD, null, message.hashCode().toString())
+        }
     }
 
     fun speak(text: String, priority: SpeechPriority = SpeechPriority.NORMAL) {
@@ -57,6 +78,18 @@ class TextToSpeechManager(
     }
 
     fun shutdown() {
+        job.cancel()
         tts?.shutdown()
+    }
+
+    private fun startQueueMonitor() {
+        scope.launch {
+            while (isActive) {
+                delay(100)
+                if (!isSpeaking() && !CommunicateQueue.isEmpty()) {
+                    speakNextFromQueue()
+                }
+            }
+        }
     }
 }

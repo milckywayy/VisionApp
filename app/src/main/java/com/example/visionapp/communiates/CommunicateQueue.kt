@@ -34,6 +34,10 @@ object CommunicateQueue {
         return queue.size
     }
 
+    fun isEmpty(): Boolean{
+        return queue.size == 0
+    }
+
     fun allElements(): List<Communicate> {
         return queue.toList()
     }
@@ -41,7 +45,6 @@ object CommunicateQueue {
     fun filterByCategory(category: CommunicateCategory): List<Communicate> {
         return queue.filter { it.communicateType.category == category }
     }
-
 
     fun stopCleaner() {
         cleanerJob.cancel()
