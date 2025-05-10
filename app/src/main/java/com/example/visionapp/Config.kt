@@ -1,6 +1,7 @@
 package com.example.visionapp
 
 import android.util.Size
+import com.example.visionapp.communiates.CommunicateType
 import java.util.Locale
 
 
@@ -23,7 +24,7 @@ object ModelsConfig {
     const val DET_MODEL_NUM_OF_CLASSES = 13
     const val DET_MODEL_CONFIDENCE_THRESHOLD = 0.25f
     const val DET_MODEL_IOU_THRESHOLD = 0.5f
-    const val VISUAL_DEBUG_MODE = true
+    const val VISUAL_DEBUG_MODE = false
 
     enum class DetectionNmsGroup {
         GREEN_LIGHT,
@@ -73,6 +74,24 @@ object ModelsConfig {
         10 to DetectionDistanceGroup.CAR_RED_LIGHT,
         11 to DetectionDistanceGroup.PEDESTRIANS_LANE_SIGN,
         12 to DetectionDistanceGroup.PEDESTRIANS_LANE_SIGN
+    )
+
+    val DETECTION_COMMUNICATE_CLASSES = mapOf(
+        0 to CommunicateType.GREEN_LIGHT,
+        1 to CommunicateType.PEDESTRIANS_TO_THE_LEFT,
+        2 to CommunicateType.PEDESTRIANS_TO_THE_RIGHT,
+        3 to CommunicateType.RED_LIGHT,
+        4 to CommunicateType.COMMON_AREA,
+        5 to CommunicateType.NO_PEDESTRIANS,
+        6 to CommunicateType.CROSSING
+    )
+
+    val TRIANGLE_COMMUNICATE_CLASSES = mapOf(
+        1 to CommunicateType.NARROW_PASSAGE,
+        2 to CommunicateType.MOVE_RIGHT,
+        3 to CommunicateType.MOVE_LEFT,
+        4 to CommunicateType.OBSTACLE,
+        5 to CommunicateType.NO_PASSAGE
     )
 }
 
