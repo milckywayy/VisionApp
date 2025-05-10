@@ -30,6 +30,7 @@ import com.example.visionapp.onnxmodels.processing.SegmentationPostprocessor
 import com.example.visionapp.utils.startCameraWithAnalyzer
 import com.example.visionapp.onnxmodels.ModelType
 import com.example.visionapp.ui.common.DropdownMenuControl
+import com.example.visionapp.utils.TextToSpeechManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
@@ -43,6 +44,8 @@ fun HomeScreen(navController: NavController) {
     var isCapturing by remember { mutableStateOf(false) }
     var cameraProvider by remember { mutableStateOf<ProcessCameraProvider?>(null) }
     val bitmapBuffer = remember { mutableStateListOf<Bitmap>() }
+    var isProcessing by remember { mutableStateOf(false) }
+    val imageStack = remember { mutableStateListOf<Bitmap>() }
 
     val requestPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
@@ -54,7 +57,6 @@ fun HomeScreen(navController: NavController) {
     }
     var selectedModelDebug by remember { mutableStateOf<ModelType?>(null) }
 
-
     val segModel = remember { SegmentationModel(CameraConfig.SEGMENTATION_RESOLUTION) }
     val segPostprocessor = remember { SegmentationPostprocessor() }
     val segModelPredictor = remember { ModelPredictor<IntArray, Bitmap?>(segModel, segPostprocessor) }
@@ -65,6 +67,7 @@ fun HomeScreen(navController: NavController) {
     val depthPostprocessor = remember { DepthPostprocessor() }
     val depthModelPredictor = remember { ModelPredictor<FloatArray, Bitmap?>(depthModel, depthPostprocessor) }
 
+    val tts = remember { TextToSpeechManager(context) }
 
     LaunchedEffect(Unit) {
         requestPermissionLauncher.launch(Manifest.permission.CAMERA)
@@ -106,34 +109,40 @@ fun HomeScreen(navController: NavController) {
         }
     }
 
+    fun analyzeNextImage() {
+        if (isProcessing || imageStack.isEmpty()) return
+
+        isProcessing = true
+        val bitmapToProcess = imageStack.removeAt(imageStack.lastIndex)
+
+        coroutineScope.launch(Dispatchers.Default) {
+            try {
+                if (ModelsConfig.VISUAL_DEBUG_MODE) {
+                    processImageDebug(bitmapToProcess)
+                } else {
+                    processImage(bitmapToProcess)
+                }
+            } finally {
+                isProcessing = false
+            }
+        }
+    }
+
     fun startCapturing() {
         if (!hasCameraPermission) {
             requestPermissionLauncher.launch(Manifest.permission.CAMERA)
             return
         }
-
-        var lastProcessedTime = 0L
         isCapturing = true
 
         startCameraWithAnalyzer(
             context = context,
             lifecycleOwner = lifecycleOwner,
             onFrame = { bitmap ->
-                val currentTime = System.currentTimeMillis()
-                if (currentTime - lastProcessedTime >= CameraConfig.CAPTURE_DELAY_MS) {
-                    lastProcessedTime = currentTime
-
-                    coroutineScope.launch(Dispatchers.Default) {
-                        if (ModelsConfig.VISUAL_DEBUG_MODE) {
-                            processImageDebug(bitmap)
-                        }
-                        else {
-                            processImage(bitmap)
-                        }
-                    }
-                } else {
-                    bitmap.recycle()
-                }
+                imageStack.forEach { it.recycle() }
+                imageStack.clear()
+                imageStack.add(bitmap)
+                analyzeNextImage()
             },
             onProviderReady = { provider ->
                 cameraProvider = provider
@@ -145,6 +154,11 @@ fun HomeScreen(navController: NavController) {
         bitmapBuffer.forEach { it.recycle() }
         bitmapBuffer.clear()
         isCapturing = false
+
+        imageStack.forEach { it.recycle() }
+        imageStack.clear()
+        isProcessing = false
+
         cameraProvider?.unbindAll()
     }
 
