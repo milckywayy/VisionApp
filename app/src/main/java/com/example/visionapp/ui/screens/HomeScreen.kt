@@ -153,6 +153,11 @@ fun HomeScreen(navController: NavController) {
         bitmapBuffer.forEach { it.recycle() }
         bitmapBuffer.clear()
         isCapturing = false
+
+        imageStack.forEach { it.recycle() }
+        imageStack.clear()
+        isProcessing = false
+
         cameraProvider?.unbindAll()
     }
 
