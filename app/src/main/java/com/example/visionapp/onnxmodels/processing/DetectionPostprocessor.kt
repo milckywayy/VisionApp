@@ -60,13 +60,21 @@ class DetectionPostprocessor : IPostprocessor<FloatArray, List<DetectionResult>>
             val iterator = sorted.iterator()
             while (iterator.hasNext()) {
                 val det = iterator.next()
-                if (iou(best.box, det.box) > iouThreshold) {
-                    iterator.remove()
+                if (getClassGroup(best.classId) == getClassGroup(det.classId)) {
+                    if (iou(best.box, det.box) > iouThreshold) {
+                        iterator.remove()
+                    }
                 }
             }
         }
 
         return result
+    }
+
+    private fun getClassGroup(classId: Int): String {
+        return ModelsConfig.DETECTION_NMS_GROUPS[classId]
+            ?.toString()
+            ?: throw IllegalArgumentException("No class group mapping found for classId: $classId")
     }
 
     private fun iou(boxA: FloatArray, boxB: FloatArray): Float {
@@ -117,10 +125,10 @@ class DetectionPostprocessor : IPostprocessor<FloatArray, List<DetectionResult>>
 
         for (det in detections) {
             val (x, y, w, h) = det.box
-            val left = (x - w / 2) * imgWidth
-            val top = (y - h / 2) * imgHeight
-            val right = (x + w / 2) * imgWidth
-            val bottom = (y + h / 2) * imgHeight
+            val left = (x - w / 2)
+            val top = (y - h / 2)
+            val right = (x + w / 2)
+            val bottom = (y + h / 2)
 
             canvas.drawRect(left, top, right, bottom, paint)
             canvas.drawText("Cls ${det.classId}: ${"%.2f".format(det.confidence)}", left, top - 10, textPaint)
