@@ -1,6 +1,6 @@
 package com.example.visionapp.communiates
 
-import com.example.visionapp.ModelsConfig
+import com.example.visionapp.Mappings
 import com.example.visionapp.onnxmodels.processing.DetectionResult
 
 object CommunicateGenerator {
@@ -21,10 +21,10 @@ object CommunicateGenerator {
     }
 
     private fun getDetectionCommunicateType(classId: Int): CommunicateType? {
-        return ModelsConfig.DETECTION_COMMUNICATE_CLASSES[classId]
+        return Mappings.DETECTION_COMMUNICATE_CLASSES[classId]
     }
 
     private fun getTriangleCommunicateType(classId: Int): CommunicateType? {
-        return ModelsConfig.TRIANGLE_COMMUNICATE_CLASSES[classId]
+        return Mappings.TRIANGLE_COMMUNICATE_CLASSES[classId]
     }
 }

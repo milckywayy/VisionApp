@@ -4,7 +4,7 @@ import android.graphics.Bitmap
 import android.util.Log
 import com.example.visionapp.CameraConfig.DEPTH_RESOLUTION
 import com.example.visionapp.CameraConfig.DETECTION_RESOLUTION
-import com.example.visionapp.ModelsConfig
+import com.example.visionapp.Mappings
 import com.example.visionapp.onnxmodels.processing.DetectionResult
 import com.example.visionapp.utils.scaleBitmap
 
@@ -124,7 +124,7 @@ object DetectionProcessing {
 
 
     private fun getClassGroup(classId: Int): String {
-        return ModelsConfig.DETECTION_DISTANCE_ESTIMATION_GROUPS[classId]
+        return Mappings.DETECTION_DISTANCE_ESTIMATION_GROUPS[classId]
             ?.toString()
             ?: throw IllegalArgumentException("No class group mapping found for classId: $classId")
     }
