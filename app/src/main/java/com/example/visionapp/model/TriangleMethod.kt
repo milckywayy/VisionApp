@@ -67,22 +67,29 @@ class TriangleMethod(
         val imagePixels = IntArray(image.width * image.height)
         image.getPixels(imagePixels, 0, image.width, 0, 0, image.width, image.height)
 
-        val (hasLeft, hasCrossing) = checkLeftAndCrossing(imagePixels, image.width, leftLine, rightLine)
+        val (leftSet, crossingSet) = checkLeftAndCrossing(imagePixels, image.width, leftLine, rightLine)
 
-        if (!hasCrossing) {
-            val hasFront = checkInFront(imagePixels, image.width,image.height)
-            val hasRight = checkRight(imagePixels, image.width, rightLine)
+        return if (!crossingSet) {
+            val rightSet = checkRight(imagePixels, image.width, rightLine)
+            val frontSet = checkInFront(imagePixels, image.width, image.height)
 
-            return when {
-                !hasFront && hasLeft && hasRight -> 1
-                !hasFront && hasLeft && !hasRight -> 2
-                !hasFront && !hasLeft && hasRight -> 3
-                !hasFront -> 0
-                !hasLeft && !hasRight -> 4
-                else -> 5
+            if (!frontSet) {
+                when {
+                    leftSet && rightSet -> 1 // wąskie przejście
+                    leftSet && !rightSet -> 2     // przesuń się do prawej
+                    !leftSet && rightSet -> 3     // przesuń się do lewej
+                    else -> 0                                           // brak przeszkód
+                }
+            } else {
+                when {
+                    leftSet && !rightSet -> 2     // przeszkoda z przodu + z lewej
+                    !leftSet && rightSet -> 3     // przeszkoda z przodu + z prawej
+                    !leftSet && !rightSet -> 4        // przeszkoda z przodu + nigdzie indziej
+                    else -> 5                                           // przeszkoda z przodu + po bokach => zawróć
+                }
             }
         } else {
-            return 5
+            5 // coś przecina – zawróć
         }
     }
 
