@@ -10,32 +10,32 @@ import com.example.visionapp.utils.scaleBitmap
 
 object DetectionProcessing {
 
-    fun processDetectionsByBoxSize(detections: List<DetectionResult>): List<DetectionResult> {
+    fun processDetectionsByBoxSize(detections: List<DetectionResult>, segmentationBitmap: Bitmap): List<DetectionResult> {
         val sortedDetections = detections
             .sortedByDescending { calculateBoxArea(it.box) }
             .toMutableList()
-        return processSortedDetection(sortedDetections)
+        return processSortedDetection(sortedDetections, segmentationBitmap)
     }
 
-    fun processDetectionsByAverageDepth(detections: List<DetectionResult>, depthMap: Bitmap): List<DetectionResult> {
+    fun processDetectionsByAverageDepth(detections: List<DetectionResult>, segmentationBitmap: Bitmap, depthMap: Bitmap): List<DetectionResult> {
         val sortedDetections = detections
             .sortedByDescending { calculateDepth(it.box, depthMap) }
             .toMutableList()
-        return processSortedDetection(sortedDetections)
+        return processSortedDetection(sortedDetections, segmentationBitmap)
     }
 
-    fun processDetectionsByBoxSizeDebug(detections: List<DetectionResult>, originalPhoto: Bitmap): Bitmap {
+    fun processDetectionsByBoxSizeDebug(detections: List<DetectionResult>, segmentationBitmap: Bitmap, originalPhoto: Bitmap): Bitmap {
         val sortedDetections = detections
             .sortedByDescending { calculateBoxArea(it.box) }
             .toMutableList()
-        return drawBoundinBoxes(originalPhoto,processSortedDetection(sortedDetections))
+        return drawBoundinBoxes(originalPhoto,processSortedDetection(sortedDetections, segmentationBitmap))
     }
 
-    fun processDetectionsByAverageDepthDebug(detections: List<DetectionResult>, depthMap: Bitmap, originalPhoto: Bitmap): Bitmap {
+    fun processDetectionsByAverageDepthDebug(detections: List<DetectionResult>, segmentationBitmap: Bitmap, depthMap: Bitmap, originalPhoto: Bitmap): Bitmap {
         val sortedDetections = detections
             .sortedByDescending { calculateDepth(it.box, depthMap) }
             .toMutableList()
-        return drawBoundinBoxes(originalPhoto,processSortedDetection(sortedDetections))
+        return drawBoundinBoxes(originalPhoto,processSortedDetection(sortedDetections, segmentationBitmap))
     }
 
     private fun drawBoundinBoxes(bitmap: Bitmap, detections: List<DetectionResult>): Bitmap {
@@ -51,8 +51,6 @@ object DetectionProcessing {
             textSize = 32f
         }
 
-        val imgWidth = bitmap.width.toFloat()
-        val imgHeight = bitmap.height.toFloat()
 
         for (det in detections) {
             val (x, y, w, h) = det.box
@@ -107,7 +105,7 @@ object DetectionProcessing {
         return totalDepth / pixels.size
     }
 
-    private fun processSortedDetection(sortedDetections: MutableList<DetectionResult>): List<DetectionResult> {
+    private fun processSortedDetection(sortedDetections: MutableList<DetectionResult>, segmentationBitmap: Bitmap): List<DetectionResult> {
         val result = mutableListOf<DetectionResult>()
         val addedGroups = mutableSetOf<String>()
 
@@ -116,6 +114,9 @@ object DetectionProcessing {
             if (group !in addedGroups) {
                 result.add(detection)
                 addedGroups.add(group)
+                if ( detection.classId == Mappings.DetectionZebraId && isZebraSegmentationOverlap(detection, segmentationBitmap)) {
+                    result.remove(detection)
+                }
             }
         }
 
@@ -128,4 +129,34 @@ object DetectionProcessing {
             ?.toString()
             ?: throw IllegalArgumentException("No class group mapping found for classId: $classId")
     }
+
+
+    private fun isZebraSegmentationOverlap(detection: DetectionResult, segmentationBitmap: Bitmap): Boolean {
+        val (x, y, w, h) = detection.box
+
+        val left = ((x - w / 2) * segmentationBitmap.width).toInt().coerceIn(0, segmentationBitmap.width - 1)
+        val top = ((y - h / 2) * segmentationBitmap.height).toInt().coerceIn(0, segmentationBitmap.height - 1)
+        val right = ((x + w / 2) * segmentationBitmap.width).toInt().coerceIn(0, segmentationBitmap.width - 1)
+        val bottom = ((y + h / 2) * segmentationBitmap.height).toInt().coerceIn(0, segmentationBitmap.height - 1)
+
+        val width = right - left + 1
+        val height = bottom - top + 1
+
+        if (width <= 0 || height <= 0) return false
+
+        val pixels = IntArray(width * height)
+        segmentationBitmap.getPixels(pixels, 0, width, left, top, width, height)
+
+        var zebraPixels = 0
+        for (pixel in pixels) {
+            val classId = (pixel shr 16) and 0xFF
+            if (classId == Mappings.SegmentationZebraId) {
+                zebraPixels++
+            }
+        }
+
+        val totalPixels = pixels.size
+        return zebraPixels >= totalPixels / 2
+    }
+
 }

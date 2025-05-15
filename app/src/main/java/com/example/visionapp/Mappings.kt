@@ -3,6 +3,9 @@ package com.example.visionapp
 import com.example.visionapp.communiates.CommunicateType
 
 object Mappings {
+    val SegmentationZebraId = 10;
+    val DetectionZebraId = 6;
+
     enum class DetectionNmsGroup {
         GREEN_LIGHT,
         SIGN,
