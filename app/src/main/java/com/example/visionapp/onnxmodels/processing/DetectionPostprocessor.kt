@@ -1,6 +1,7 @@
 package com.example.visionapp.onnxmodels.processing
 
 import android.graphics.Bitmap
+import com.example.visionapp.Mappings
 import com.example.visionapp.ModelsConfig
 
 class DetectionPostprocessor : IPostprocessor<FloatArray, List<DetectionResult>> {
@@ -72,7 +73,7 @@ class DetectionPostprocessor : IPostprocessor<FloatArray, List<DetectionResult>>
     }
 
     private fun getClassGroup(classId: Int): String {
-        return ModelsConfig.DETECTION_NMS_GROUPS[classId]
+        return Mappings.DETECTION_NMS_GROUPS[classId]
             ?.toString()
             ?: throw IllegalArgumentException("No class group mapping found for classId: $classId")
     }

@@ -7,6 +7,8 @@ import kotlinx.coroutines.*
 object CommunicateQueue {
 
     private val queue: PriorityQueue<Communicate> = PriorityQueue()
+    val previousCommunicateStateMap = CommunicateType.entries.associateWith { false }.toMutableMap()
+
 
     private val cleanerJob = CoroutineScope(Dispatchers.Default).launch {
         while (true) {
@@ -15,7 +17,7 @@ object CommunicateQueue {
         }
     }
 
-    fun add(communicate: Communicate, removeCommunicatesWithSameCategory: Boolean = false) {
+    fun add(communicate: Communicate, removeCommunicatesWithSameCategory: Boolean = true) {
         if(removeCommunicatesWithSameCategory){
             removeByCategory(communicate.communicateType.category)
         }
