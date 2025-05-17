@@ -3,6 +3,7 @@ package com.example.visionapp.onnxmodels.processing
 import android.graphics.Bitmap
 import android.graphics.Color
 import com.example.visionapp.Mappings
+import com.example.visionapp.onnxmodels.processing.Helpers.SegmentationBitmapHelper
 
 class SegmentationPostprocessor : IPostprocessor<IntArray, Bitmap?> {
 

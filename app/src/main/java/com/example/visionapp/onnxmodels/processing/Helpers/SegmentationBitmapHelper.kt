@@ -1,4 +1,4 @@
-package com.example.visionapp.onnxmodels.processing
+package com.example.visionapp.onnxmodels.processing.Helpers
 
 import android.graphics.Bitmap
 import android.graphics.Color
