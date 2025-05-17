@@ -33,9 +33,11 @@ import com.example.visionapp.onnxmodels.processing.DetectionResult
 import com.example.visionapp.onnxmodels.processing.SegmentationPostprocessor
 import com.example.visionapp.utils.startCameraWithAnalyzer
 import com.example.visionapp.onnxmodels.ModelType
+import com.example.visionapp.onnxmodels.processing.SegmentationBitmapHelper
 import com.example.visionapp.processing.DetectionProcessing
 import com.example.visionapp.ui.common.DropdownMenuControl
 import com.example.visionapp.utils.TextToSpeechManager
+import com.example.visionapp.utils.scaleBitmap
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
@@ -102,16 +104,20 @@ fun HomeScreen(navController: NavController) {
             val triangle = TriangleMethod(depthImage, segmentedImage)
             CommunicateGenerator.generateCommunicatesFromTriangle(triangle.analyzeScene())
         }
-        /*val tag = "CommunicateQueue"
-        val messages = CommunicateQueue.allElements()
-            .joinToString(separator = "\n") { it.communicateType.message }
 
-        Log.d(tag, "Current communicates in queue:\n$messages")*/
+        if(ModelsConfig.VISUAL_DEBUG_MODE){
+            when (selectedModelDebug){
+                ModelType.DEPTH -> depthImage?.let { addBitmapToBuffer(it) }
+                ModelType.DETECTION -> {} //TODO
+                ModelType.SEGMENTATION -> segmentedImage?.let{
+                    val scaledImageBitmap = scaleBitmap(bitmap, CameraConfig.SEGMENTATION_RESOLUTION)
+                    val imageWithOverlay = SegmentationBitmapHelper.overlayColoredMaskOnImage(segmentedImage, scaledImageBitmap)
+                    addBitmapToBuffer(imageWithOverlay)
+                }
+                else -> {}
+            }
 
-        if (segmentedImage != null) {
-            addBitmapToBuffer(segmentedImage)
         }
-
     }
 
     fun processImageDebug(bitmap: Bitmap) {
@@ -135,7 +141,7 @@ fun HomeScreen(navController: NavController) {
 
         coroutineScope.launch(Dispatchers.Default) {
             try {
-                if (ModelsConfig.VISUAL_DEBUG_MODE) {
+                if (ModelsConfig.VISUAL_DEBUG_ONLY_MODE) {
                     processImageDebug(bitmapToProcess)
                 } else {
                     processImage(bitmapToProcess)
@@ -185,7 +191,7 @@ fun HomeScreen(navController: NavController) {
         verticalArrangement = Arrangement.SpaceEvenly,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        if(ModelsConfig.VISUAL_DEBUG_MODE) {
+        if(ModelsConfig.VISUAL_DEBUG_ONLY_MODE || ModelsConfig.VISUAL_DEBUG_MODE) {
             DropdownMenuControl(
                 items = ModelType.entries,
                 selectedItem = selectedModelDebug,
@@ -199,7 +205,7 @@ fun HomeScreen(navController: NavController) {
             Image(
                 bitmap = bitmap.asImageBitmap(),
                 contentDescription = "Photo taken",
-                modifier = Modifier.size(300.dp)
+                modifier = Modifier.size(500.dp)
             )
         }
 
