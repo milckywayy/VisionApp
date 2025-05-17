@@ -35,9 +35,13 @@ import com.example.visionapp.utils.startCameraWithAnalyzer
 import com.example.visionapp.onnxmodels.ModelType
 import com.example.visionapp.processing.DetectionProcessing
 import com.example.visionapp.ui.common.DropdownMenuControl
+import com.example.visionapp.utils.SaveToFiles.saveBitmapToGalleryWithName
 import com.example.visionapp.utils.TextToSpeechManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 @Composable
 fun HomeScreen(navController: NavController) {
@@ -114,11 +118,26 @@ fun HomeScreen(navController: NavController) {
 
     }
 
+
+    var currentIndex = 0
+
     fun processImageDebug(bitmap: Bitmap) {
         val segmentedImage = segModelPredictor.makePredictionsDebug(bitmap)
         val detectionImage = detModelPredictor.makePredictionsDebug(bitmap)
         val depthImage = depthModelPredictor.makePredictionsDebug(bitmap)
-
+        val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Date())
+        currentIndex++
+        if ( ModelsConfig.SAVE_TO_FILES ) {
+            if (segmentedImage != null) {
+                saveBitmapToGalleryWithName(context, segmentedImage, "image_${currentIndex}_segmentation_$timestamp")
+            }
+            if (detectionImage != null) {
+                saveBitmapToGalleryWithName(context, detectionImage, "image_${currentIndex}_detection_$timestamp")
+            }
+            if (depthImage != null) {
+                saveBitmapToGalleryWithName(context, depthImage, "image_${currentIndex}_depth_$timestamp")
+            }
+        }
         when (selectedModelDebug){
             ModelType.DEPTH -> depthImage?.let { addBitmapToBuffer(it) }
             ModelType.DETECTION -> detectionImage?.let { addBitmapToBuffer(it) }
