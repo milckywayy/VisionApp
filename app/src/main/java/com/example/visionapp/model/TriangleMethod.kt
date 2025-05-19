@@ -14,12 +14,16 @@ class TriangleMethod(
 
     companion object {
         private val nonValidClasses = mapOf(
-            0 to "road",
             3 to "obstacle",
             7 to "vehicle",
             2 to "wall",
             8 to "vegetation",
             11 to "tram"
+        )
+        private val specialClasses = mapOf(
+            0 to "road",
+            6 to "person",
+            9 to "bike_path"
         )
     }
     /*
@@ -28,7 +32,13 @@ class TriangleMethod(
     2: 'Przesuń się do prawej',
     3: 'Przesuń się do lewej',
     4: 'Uwaga przeszkoda. Przesuń się gdzieś.',
-    5: 'Zawróć',*/
+    5: 'Zawróć',
+    6: 'Uwaga, wchodzisz na...'*/
+    data class CheckResult(
+        val hasForbidden: Boolean,
+        val hasSpecial: Boolean,
+        val specialClassNames: Set<String> = emptySet()
+    )
 
     private fun combineBitmaps(depthBitmap: Bitmap, segmentationBitmap: Bitmap): Bitmap {
         val width = SEGMENTATION_RESOLUTION.width
@@ -60,38 +70,57 @@ class TriangleMethod(
 
         val width = SEGMENTATION_RESOLUTION.width
         val height = SEGMENTATION_RESOLUTION.height
-        val leftLine = findPixelsOnLine(TriangleConfig.LINE_1_a, TriangleConfig.LINE_1_b, (width/6).toInt()..(width/6*2).toInt(), (height/6*4).toInt()..(height-1).toInt())
-        val rightLine = findPixelsOnLine(TriangleConfig.LINE_2_a, TriangleConfig.LINE_2_b, (width/6*4).toInt()..(width/6*5).toInt(), (height/6*4).toInt()..(height-1).toInt())
-        //val line3 = findPixelsOnLine(0.0, 668.0, 215..298, 668..669)
+        val leftLine = findPixelsOnLine(TriangleConfig.LINE_1_a, TriangleConfig.LINE_1_b, (width / 6)..(width / 6 * 2), (height / 6 * 4)..(height - 1))
+        val rightLine = findPixelsOnLine(TriangleConfig.LINE_2_a, TriangleConfig.LINE_2_b, (width / 6 * 4)..(width / 6 * 5), (height / 6 * 4)..(height - 1))
 
         val imagePixels = IntArray(image.width * image.height)
         image.getPixels(imagePixels, 0, image.width, 0, 0, image.width, image.height)
 
-        val (leftSet, crossingSet) = checkLeftAndCrossing(imagePixels, image.width, leftLine, rightLine)
+        val (leftCheck, crossingSet) = checkLeftAndCrossing(imagePixels, image.width, leftLine, rightLine)
 
-        return if (!crossingSet) {
-            val rightSet = checkRight(imagePixels, image.width, rightLine)
+        if (!crossingSet) {
+            val rightCheck = checkRight(imagePixels, image.width, rightLine)
             val frontSet = checkInFront(imagePixels, image.width, image.height)
 
+            if (!leftCheck.hasForbidden && leftCheck.hasSpecial) {
+                return when {
+                    "road" in leftCheck.specialClassNames -> 61
+                    "bike_path" in leftCheck.specialClassNames -> 62
+                    "person" in leftCheck.specialClassNames -> 63
+                    else -> 0 // fallback w razie czego
+                }
+            }
+
+            if (!rightCheck.hasForbidden && rightCheck.hasSpecial) {
+                return when {
+                    "road" in rightCheck.specialClassNames -> 61
+                    "bike_path" in rightCheck.specialClassNames -> 62
+                    "person" in rightCheck.specialClassNames -> 63
+                    else -> 0
+                }
+            }
+
+
             if (!frontSet) {
-                when {
-                    leftSet && rightSet -> 1 // wąskie przejście
-                    leftSet && !rightSet -> 2     // przesuń się do prawej
-                    !leftSet && rightSet -> 3     // przesuń się do lewej
-                    else -> 0                                           // brak przeszkód
+                return when {
+                    leftCheck.hasForbidden && rightCheck.hasForbidden -> 1
+                    leftCheck.hasForbidden && !rightCheck.hasForbidden -> 2
+                    !leftCheck.hasForbidden && rightCheck.hasForbidden -> 3
+                    else -> 0
                 }
             } else {
-                when {
-                    leftSet && !rightSet -> 2     // przeszkoda z przodu + z lewej
-                    !leftSet && rightSet -> 3     // przeszkoda z przodu + z prawej
-                    !leftSet && !rightSet -> 4        // przeszkoda z przodu + nigdzie indziej
-                    else -> 5                                           // przeszkoda z przodu + po bokach => zawróć
+                return when {
+                    leftCheck.hasForbidden && !rightCheck.hasForbidden -> 2
+                    !leftCheck.hasForbidden && rightCheck.hasForbidden -> 3
+                    !leftCheck.hasForbidden && !rightCheck.hasForbidden -> 4
+                    else -> 5
                 }
             }
         } else {
-            5 // coś przecina – zawróć
+            return 5
         }
     }
+
 
     private fun findPixelsOnLine(
         a: Double,
@@ -119,7 +148,7 @@ class TriangleMethod(
         width: Int,
         leftLine: List<Pair<Int, Int>>,
         rightLine: List<Pair<Int, Int>>
-    ): Pair<Boolean, Boolean>  {
+    ): Pair<CheckResult, Boolean> {
         val line2Cords = mutableMapOf<Int, Int>()
         for (p in rightLine) {
             line2Cords[p.second] = p.first
@@ -127,42 +156,47 @@ class TriangleMethod(
 
         var hasLeft = false
         var hasCrossing = false
+        val specialClassesFound = mutableSetOf<String>()
 
-        for (point in leftLine) {
-            val (x, y) = point
+        for ((x, y) in leftLine) {
             val classId = Color.red(pixels[y * width + x])
-            if (classId in nonValidClasses) {
-                var x1 = point.first
-                val maxX = line2Cords[point.second] ?: continue
-                while (x1 < maxX) {
-                    x1++
-                    if (x1 >= width) break
-                    val nextColor = Color.red(pixels[y * width + x1])
-                    if (nextColor == classId)
-                        continue
-                    else
-                        break
+            when {
+                classId in nonValidClasses -> {
+                    var x1 = x
+                    val maxX = line2Cords[y] ?: continue
+                    while (x1 < maxX) {
+                        x1++
+                        if (x1 >= width) break
+                        val nextColor = Color.red(pixels[y * width + x1])
+                        if (nextColor == classId) continue
+                        else break
+                    }
+                    if (x1 >= maxX) hasCrossing = true else hasLeft = true
                 }
-                if (x1 >= maxX) {
-                    hasCrossing = true
-                } else {
-                    hasLeft = true
+                classId in specialClasses -> {
+                    specialClassesFound.add(specialClasses[classId]!!)
                 }
             }
         }
 
-        return Pair(hasLeft, hasCrossing)
+        return Pair(CheckResult(hasLeft, specialClassesFound.isNotEmpty(), specialClassesFound), hasCrossing)
     }
 
-    private fun checkRight(pixels: IntArray, width: Int, line2: List<Pair<Int, Int>>): Boolean {
-        for ((x,y) in line2) {
+
+    private fun checkRight(pixels: IntArray, width: Int, line2: List<Pair<Int, Int>>): CheckResult {
+        val specialClassesFound = mutableSetOf<String>()
+
+        for ((x, y) in line2) {
             val classId = Color.red(pixels[y * width + x])
-            if (classId in nonValidClasses) {
-                return true
+            when {
+                classId in nonValidClasses -> return CheckResult(true, false)
+                classId in specialClasses -> specialClassesFound.add(specialClasses[classId]!!)
             }
         }
-        return false
+
+        return CheckResult(false, specialClassesFound.isNotEmpty(), specialClassesFound)
     }
+
 
     private fun checkInFront(pixels: IntArray, width: Int, height: Int,
                              startXRatio: Double = 0.41,

@@ -68,6 +68,9 @@ object Mappings {
         2 to CommunicateType.MOVE_RIGHT,
         3 to CommunicateType.MOVE_LEFT,
         4 to CommunicateType.OBSTACLE,
-        5 to CommunicateType.NO_PASSAGE
+        5 to CommunicateType.NO_PASSAGE,
+        61 to CommunicateType.WARNING_ROAD,
+        62 to CommunicateType.WARNING_BIKE_PATH,
+        63 to CommunicateType.WARNING_PERSON
     )
 }
