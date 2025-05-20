@@ -97,9 +97,9 @@ fun HomeScreen(navController: NavController) {
         val detectionResults = detModelPredictor.makePredictions(bitmap)
         val depthImage = depthModelPredictor.makePredictions(bitmap)
 
-        val processedDetectionResults = DetectionProcessing.processDetectionsByBoxSize(detectionResults)
-        CommunicateGenerator.generateCommunicatesFromDetection(processedDetectionResults)
         if (segmentedImage != null && depthImage != null){
+            val processedDetectionResults = DetectionProcessing.processDetectionsByBoxSize(detectionResults, segmentedImage)
+            CommunicateGenerator.generateCommunicatesFromDetection(processedDetectionResults)
             val triangle = TriangleMethod(depthImage, segmentedImage)
             CommunicateGenerator.generateCommunicatesFromTriangle(triangle.analyzeScene())
         }

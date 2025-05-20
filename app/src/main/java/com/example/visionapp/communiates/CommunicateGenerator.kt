@@ -1,6 +1,7 @@
 package com.example.visionapp.communiates
 
 import com.example.visionapp.Mappings
+import com.example.visionapp.model.SceneAnalysisResult
 import com.example.visionapp.onnxmodels.processing.DetectionResult
 
 object CommunicateGenerator {
@@ -32,7 +33,7 @@ object CommunicateGenerator {
         }
     }
 
-    fun generateCommunicatesFromTriangle(communicateClass: Int) {
+    fun generateCommunicatesFromTriangle(communicateClass: SceneAnalysisResult) {
         val type = getTriangleCommunicateType(communicateClass)
         if (type != null) {
             if(CommunicateQueue.previousCommunicateStateMap[type] == true){
@@ -53,7 +54,7 @@ object CommunicateGenerator {
         return Mappings.DETECTION_COMMUNICATE_CLASSES[classId]
     }
 
-    private fun getTriangleCommunicateType(classId: Int): CommunicateType? {
-        return Mappings.TRIANGLE_COMMUNICATE_CLASSES[classId]
+    private fun getTriangleCommunicateType(sceneAnalysisResult: SceneAnalysisResult): CommunicateType? {
+        return Mappings.TRIANGLE_COMMUNICATE_CLASSES[sceneAnalysisResult.id]
     }
 }
