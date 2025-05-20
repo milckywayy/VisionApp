@@ -153,6 +153,9 @@ object DetectionProcessing {
             if (classId == Mappings.SegmentationZebraId) {
                 zebraPixels++
             }
+            if (zebraPixels >= totalPixels / 2) {
+                return true
+            }
         }
 
         val totalPixels = pixels.size
