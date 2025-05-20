@@ -35,10 +35,15 @@ import com.example.visionapp.onnxmodels.processing.Helpers.DetectionBitmapHelper
 import com.example.visionapp.onnxmodels.processing.Helpers.SegmentationBitmapHelper
 import com.example.visionapp.processing.DetectionProcessing
 import com.example.visionapp.ui.common.DropdownMenuControl
+import com.example.visionapp.utils.SaveToFiles.saveBitmapToGalleryWithName
+import com.example.visionapp.utils.SaveToFiles.saveBitmapsToFiles
 import com.example.visionapp.utils.TextToSpeechManager
 import com.example.visionapp.utils.scaleBitmap
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 @Composable
 fun HomeScreen(navController: NavController) {
@@ -96,38 +101,53 @@ fun HomeScreen(navController: NavController) {
         val segmentedImage = segModelPredictor.makePredictions(bitmap)
         val detectionResults = detModelPredictor.makePredictions(bitmap)
         val depthImage = depthModelPredictor.makePredictions(bitmap)
-
-        if (segmentedImage != null && depthImage != null){
+        if (segmentedImage == null || depthImage == null) {
+            return
+        }
+        if (segmentedImage != null && depthImage != null) {
             val processedDetectionResults = DetectionProcessing.processDetectionsByBoxSize(detectionResults, segmentedImage)
             CommunicateGenerator.generateCommunicatesFromDetection(processedDetectionResults)
             val triangle = TriangleMethod(depthImage, segmentedImage)
             CommunicateGenerator.generateCommunicatesFromTriangle(triangle.analyzeScene())
         }
 
+        val scaledImageBitmapForDetection = scaleBitmap(bitmap, CameraConfig.DETECTION_RESOLUTION)
+        val imageWithBoxes = DetectionBitmapHelper.drawDetectionsOnBitmap(scaledImageBitmapForDetection, detectionResults)
+        val scaledImageBitmapForSegmentation = scaleBitmap(bitmap, CameraConfig.SEGMENTATION_RESOLUTION)
+        val imageWithOverlay = SegmentationBitmapHelper.overlayColoredMaskOnImage(segmentedImage, scaledImageBitmapForSegmentation)
         if(ModelsConfig.VISUAL_DEBUG_MODE){
             when (selectedModelDebug){
                 ModelType.DEPTH -> depthImage?.let { addBitmapToBuffer(it) }
                 ModelType.DETECTION -> {
-                    val scaledImageBitmap = scaleBitmap(bitmap, CameraConfig.DETECTION_RESOLUTION)
-                    val imageWithBoxes = DetectionBitmapHelper.drawDetectionsOnBitmap(scaledImageBitmap, detectionResults)
                     addBitmapToBuffer(imageWithBoxes)
                 }
                 ModelType.SEGMENTATION -> segmentedImage?.let{
-                    val scaledImageBitmap = scaleBitmap(bitmap, CameraConfig.SEGMENTATION_RESOLUTION)
-                    val imageWithOverlay = SegmentationBitmapHelper.overlayColoredMaskOnImage(segmentedImage, scaledImageBitmap)
                     addBitmapToBuffer(imageWithOverlay)
                 }
                 else -> {}
             }
 
         }
+
+        if ( ModelsConfig.SAVE_TO_FILES ) {
+            if (bitmap != null && imageWithOverlay != null && imageWithBoxes != null && depthImage != null) {
+                saveBitmapsToFiles(context,bitmap,imageWithOverlay,imageWithBoxes,depthImage)
+            }
+        }
     }
+
+
 
     fun processImageDebug(bitmap: Bitmap) {
         val segmentedImage = segModelPredictor.makePredictionsDebug(bitmap)
         val detectionImage = detModelPredictor.makePredictionsDebug(bitmap)
         val depthImage = depthModelPredictor.makePredictionsDebug(bitmap)
 
+        if ( ModelsConfig.SAVE_TO_FILES ) {
+            if (bitmap != null && segmentedImage != null && detectionImage != null && depthImage != null) {
+                saveBitmapsToFiles(context,bitmap,segmentedImage,detectionImage,depthImage)
+            }
+        }
         when (selectedModelDebug){
             ModelType.DEPTH -> depthImage?.let { addBitmapToBuffer(it) }
             ModelType.DETECTION -> detectionImage?.let { addBitmapToBuffer(it) }

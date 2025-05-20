@@ -147,6 +147,8 @@ object DetectionProcessing {
         val pixels = IntArray(width * height)
         segmentationBitmap.getPixels(pixels, 0, width, left, top, width, height)
 
+        val totalPixels = pixels.size
+
         var zebraPixels = 0
         for (pixel in pixels) {
             val classId = (pixel shr 16) and 0xFF
@@ -158,7 +160,6 @@ object DetectionProcessing {
             }
         }
 
-        val totalPixels = pixels.size
         return zebraPixels >= totalPixels / 2
     }
 
