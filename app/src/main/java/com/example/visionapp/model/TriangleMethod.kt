@@ -5,6 +5,7 @@ import android.graphics.Color
 import com.example.visionapp.CameraConfig.SEGMENTATION_RESOLUTION
 import com.example.visionapp.TriangleConfig
 
+
 class TriangleMethod(
     depthBitmap: Bitmap,
     segmentationBitmap: Bitmap,
@@ -55,41 +56,40 @@ class TriangleMethod(
          return final
     }
 
-    fun analyzeScene(): Int {
+    fun analyzeScene(): SceneAnalysisResult {
         val image = resultBitmap
 
         val width = SEGMENTATION_RESOLUTION.width
         val height = SEGMENTATION_RESOLUTION.height
         val leftLine = findPixelsOnLine(TriangleConfig.LINE_1_a, TriangleConfig.LINE_1_b, (width/6).toInt()..(width/6*2).toInt(), (height/6*4).toInt()..(height-1).toInt())
         val rightLine = findPixelsOnLine(TriangleConfig.LINE_2_a, TriangleConfig.LINE_2_b, (width/6*4).toInt()..(width/6*5).toInt(), (height/6*4).toInt()..(height-1).toInt())
-        //val line3 = findPixelsOnLine(0.0, 668.0, 215..298, 668..669)
 
         val imagePixels = IntArray(image.width * image.height)
         image.getPixels(imagePixels, 0, image.width, 0, 0, image.width, image.height)
 
-        val (leftSet, crossingSet) = checkLeftAndCrossing(imagePixels, image.width, leftLine, rightLine)
+        val (obstacleOnLeft, obstacleCrossesBothLines) = checkLeftAndCrossing(imagePixels, image.width, leftLine, rightLine)
 
-        return if (!crossingSet) {
-            val rightSet = checkRight(imagePixels, image.width, rightLine)
-            val frontSet = checkInFront(imagePixels, image.width, image.height)
+        return if (!obstacleCrossesBothLines) {
+            val obstacleOnRight = checkRight(imagePixels, image.width, rightLine)
+            val obtacleInFront = checkInFront(imagePixels, image.width, image.height)
 
-            if (!frontSet) {
+            if (!obtacleInFront) {
                 when {
-                    leftSet && rightSet -> 1 // wąskie przejście
-                    leftSet && !rightSet -> 2     // przesuń się do prawej
-                    !leftSet && rightSet -> 3     // przesuń się do lewej
-                    else -> 0                                           // brak przeszkód
+                    obstacleOnLeft && obstacleOnRight -> SceneAnalysisResult.NARROW_PASSAGE
+                    obstacleOnLeft && !obstacleOnRight -> SceneAnalysisResult.MOVE_RIGHT
+                    !obstacleOnLeft && obstacleOnRight -> SceneAnalysisResult.MOVE_LEFT
+                    else -> SceneAnalysisResult.NO_OBSTACLE
                 }
             } else {
                 when {
-                    leftSet && !rightSet -> 2     // przeszkoda z przodu + z lewej
-                    !leftSet && rightSet -> 3     // przeszkoda z przodu + z prawej
-                    !leftSet && !rightSet -> 4        // przeszkoda z przodu + nigdzie indziej
-                    else -> 5                                           // przeszkoda z przodu + po bokach => zawróć
+                    obstacleOnLeft && !obstacleOnRight -> SceneAnalysisResult.MOVE_RIGHT
+                    !obstacleOnLeft && obstacleOnRight -> SceneAnalysisResult.MOVE_LEFT
+                    !obstacleOnLeft && !obstacleOnRight -> SceneAnalysisResult.OBSTACLE_FRONT
+                    else -> SceneAnalysisResult.TURN_AROUND
                 }
             }
         } else {
-            5 // coś przecina – zawróć
+            SceneAnalysisResult.TURN_AROUND
         }
     }
 

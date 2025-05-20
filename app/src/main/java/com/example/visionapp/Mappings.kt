@@ -3,6 +3,9 @@ package com.example.visionapp
 import com.example.visionapp.communiates.CommunicateType
 
 object Mappings {
+    val SegmentationZebraId = 10;
+    val DetectionZebraId = 6;
+
     enum class DetectionNmsGroup {
         GREEN_LIGHT,
         SIGN,
@@ -69,5 +72,20 @@ object Mappings {
         3 to CommunicateType.MOVE_LEFT,
         4 to CommunicateType.OBSTACLE,
         5 to CommunicateType.NO_PASSAGE
+    )
+
+    val SEGMENTATION_COLOR_MAP = mapOf(
+        0   to intArrayOf(0,    0,      0,      192),   // road,        black
+        1   to intArrayOf(168,  16,     243,    192),   // sidewalk,    purple
+        2   to intArrayOf(250,  250,    55,     192),   // wall,        yellow
+        3   to intArrayOf(250,  50,     83,     192),   // obstacle,    red
+        4   to intArrayOf(0,    255,    0,      192),   // grass,       light-green
+        5   to intArrayOf(51,   221,    255,    192),   // sky,         light-blue
+        6   to intArrayOf(245,  147,    49,     192),   // person,      orange
+        7   to intArrayOf(65,   65,     232,    192),   // vehicle,     dark-blue
+        8   to intArrayOf(2,    100,    27,     192),   // vegetation,  dark-green
+        9   to intArrayOf(37,   219,    188,    192),   // bike_path,   cyan
+        10  to intArrayOf(255,  253,    208,    192),   // zebra,       beige
+        11  to intArrayOf(204,  51,     102,    192)    // train,       claret
     )
 }
