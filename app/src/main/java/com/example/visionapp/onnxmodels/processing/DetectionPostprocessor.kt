@@ -3,6 +3,7 @@ package com.example.visionapp.onnxmodels.processing
 import android.graphics.Bitmap
 import com.example.visionapp.Mappings
 import com.example.visionapp.ModelsConfig
+import com.example.visionapp.onnxmodels.processing.Helpers.DetectionBitmapHelper
 
 class DetectionPostprocessor : IPostprocessor<FloatArray, List<DetectionResult>> {
 
@@ -41,7 +42,7 @@ class DetectionPostprocessor : IPostprocessor<FloatArray, List<DetectionResult>>
     override fun postprocessDebug(modelOutput: Array<FloatArray>, inputBitmap: Bitmap?): Bitmap? {
         val detections = postprocess(modelOutput)
         if (inputBitmap != null) {
-            val imageWithBoxes = drawDetectionsOnBitmap(inputBitmap, detections)
+            val imageWithBoxes = DetectionBitmapHelper.drawDetectionsOnBitmap(inputBitmap, detections)
             return imageWithBoxes
         }
         return null
@@ -107,35 +108,4 @@ class DetectionPostprocessor : IPostprocessor<FloatArray, List<DetectionResult>>
 
         return if (unionArea > 0f) interArea / unionArea else 0f
     }
-
-    private fun drawDetectionsOnBitmap(bitmap: Bitmap, detections: List<DetectionResult>): Bitmap {
-        val result = bitmap.copy(Bitmap.Config.ARGB_8888, true)
-        val canvas = android.graphics.Canvas(result)
-        val paint = android.graphics.Paint().apply {
-            style = android.graphics.Paint.Style.STROKE
-            color = android.graphics.Color.RED
-            strokeWidth = 3f
-        }
-        val textPaint = android.graphics.Paint().apply {
-            color = android.graphics.Color.YELLOW
-            textSize = 32f
-        }
-
-        val imgWidth = bitmap.width.toFloat()
-        val imgHeight = bitmap.height.toFloat()
-
-        for (det in detections) {
-            val (x, y, w, h) = det.box
-            val left = (x - w / 2)
-            val top = (y - h / 2)
-            val right = (x + w / 2)
-            val bottom = (y + h / 2)
-
-            canvas.drawRect(left, top, right, bottom, paint)
-            canvas.drawText("Cls ${det.classId}: ${"%.2f".format(det.confidence)}", left, top - 10, textPaint)
-        }
-
-        return result
-    }
-
 }
