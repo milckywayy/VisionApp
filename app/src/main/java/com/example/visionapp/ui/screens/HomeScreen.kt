@@ -128,6 +128,9 @@ fun HomeScreen(navController: NavController) {
         val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Date())
         currentIndex++
         if ( ModelsConfig.SAVE_TO_FILES ) {
+            if (bitmap != null) {
+                saveBitmapToGalleryWithName(context, bitmap, "image_${currentIndex}_original_$timestamp")
+            }
             if (segmentedImage != null) {
                 saveBitmapToGalleryWithName(context, segmentedImage, "image_${currentIndex}_segmentation_$timestamp")
             }
