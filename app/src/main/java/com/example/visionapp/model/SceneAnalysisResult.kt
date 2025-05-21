@@ -6,7 +6,10 @@ enum class SceneAnalysisResult(val id: Int) {
     MOVE_RIGHT(2),
     MOVE_LEFT(3),
     OBSTACLE_FRONT(4),
-    TURN_AROUND(5);
+    TURN_AROUND(5),
+    WARNING_ROAD(6),
+    WARNING_BIKE_PATH(7),
+    WARNING_PERSON(8);
 
     companion object {
         fun fromId(id: Int): SceneAnalysisResult {

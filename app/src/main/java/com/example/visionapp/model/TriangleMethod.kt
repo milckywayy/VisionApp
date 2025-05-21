@@ -65,7 +65,7 @@ class TriangleMethod(
         return final
     }
 
-    fun analyzeScene(): Int {
+    fun analyzeScene(): SceneAnalysisResult {
         val image = resultBitmap
 
         val width = SEGMENTATION_RESOLUTION.width
@@ -84,40 +84,39 @@ class TriangleMethod(
 
             if (!leftCheck.hasForbidden && leftCheck.hasSpecial) {
                 return when {
-                    "road" in leftCheck.specialClassNames -> 61
-                    "bike_path" in leftCheck.specialClassNames -> 62
-                    "person" in leftCheck.specialClassNames -> 63
-                    else -> 0 // fallback w razie czego
+                    "road" in leftCheck.specialClassNames -> SceneAnalysisResult.WARNING_ROAD
+                    "bike_path" in leftCheck.specialClassNames -> SceneAnalysisResult.WARNING_BIKE_PATH
+                    "person" in leftCheck.specialClassNames -> SceneAnalysisResult.WARNING_PERSON
+                    else -> SceneAnalysisResult.NO_OBSTACLE // fallback
                 }
             }
 
             if (!rightCheck.hasForbidden && rightCheck.hasSpecial) {
                 return when {
-                    "road" in rightCheck.specialClassNames -> 61
-                    "bike_path" in rightCheck.specialClassNames -> 62
-                    "person" in rightCheck.specialClassNames -> 63
-                    else -> 0
+                    "road" in rightCheck.specialClassNames -> SceneAnalysisResult.WARNING_ROAD
+                    "bike_path" in rightCheck.specialClassNames -> SceneAnalysisResult.WARNING_BIKE_PATH
+                    "person" in rightCheck.specialClassNames -> SceneAnalysisResult.WARNING_PERSON
+                    else -> SceneAnalysisResult.NO_OBSTACLE
                 }
             }
-
 
             if (!frontSet) {
                 return when {
-                    leftCheck.hasForbidden && rightCheck.hasForbidden -> 1
-                    leftCheck.hasForbidden && !rightCheck.hasForbidden -> 2
-                    !leftCheck.hasForbidden && rightCheck.hasForbidden -> 3
-                    else -> 0
+                    leftCheck.hasForbidden && rightCheck.hasForbidden -> SceneAnalysisResult.NARROW_PASSAGE
+                    leftCheck.hasForbidden && !rightCheck.hasForbidden -> SceneAnalysisResult.MOVE_RIGHT
+                    !leftCheck.hasForbidden && rightCheck.hasForbidden -> SceneAnalysisResult.MOVE_LEFT
+                    else -> SceneAnalysisResult.NO_OBSTACLE
                 }
             } else {
                 return when {
-                    leftCheck.hasForbidden && !rightCheck.hasForbidden -> 2
-                    !leftCheck.hasForbidden && rightCheck.hasForbidden -> 3
-                    !leftCheck.hasForbidden && !rightCheck.hasForbidden -> 4
-                    else -> 5
+                    leftCheck.hasForbidden && !rightCheck.hasForbidden -> SceneAnalysisResult.MOVE_RIGHT
+                    !leftCheck.hasForbidden && rightCheck.hasForbidden -> SceneAnalysisResult.MOVE_LEFT
+                    !leftCheck.hasForbidden && !rightCheck.hasForbidden -> SceneAnalysisResult.OBSTACLE_FRONT
+                    else -> SceneAnalysisResult.TURN_AROUND
                 }
             }
         } else {
-            return 5
+            return SceneAnalysisResult.TURN_AROUND
         }
     }
 
