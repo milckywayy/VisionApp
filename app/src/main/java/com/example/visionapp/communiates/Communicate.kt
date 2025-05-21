@@ -19,7 +19,10 @@ enum class CommunicateType(val message: String, val priority: Int, val category:
     PEDESTRIANS_TO_THE_LEFT("Warning, pedestrians should move on the left side", 7, CommunicateCategory.SIGNS),
     PEDESTRIANS_TO_THE_RIGHT("Warning, pedestrians should move on the right side", 7, CommunicateCategory.SIGNS),
     COMMON_AREA("You are entering a common area for pedestrians and bikes", 7, CommunicateCategory.SIGNS),
-    OBSTACLE("Warning, there is an obstacle in front of you", 6, CommunicateCategory.PASSAGE);
+    OBSTACLE("Warning, there is an obstacle in front of you", 6, CommunicateCategory.PASSAGE),
+    WARNING_ROAD("Warning, you are entering a road", 8, CommunicateCategory.PASSAGE),
+    WARNING_BIKE_PATH("Warning, you are entering a bike path", 8, CommunicateCategory.PASSAGE),
+    WARNING_PERSON("Warning, you are walking into someone", 8, CommunicateCategory.PASSAGE);
 }
 
 
