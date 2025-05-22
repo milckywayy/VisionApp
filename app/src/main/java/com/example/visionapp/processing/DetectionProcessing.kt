@@ -80,7 +80,7 @@ object DetectionProcessing {
         val h = box[3]
 
         val scaleX = depthMap.width.toFloat() / DEPTH_RESOLUTION.width
-        val scaleY = depthMap.height.toFloat() / DETECTION_RESOLUTION.height
+        val scaleY = depthMap.height.toFloat() / DEPTH_RESOLUTION.height
 
         val left = ((x - w / 2) * scaleX).toInt().coerceIn(0, depthMap.width - 1)
         val top = ((y - h / 2) * scaleY).toInt().coerceIn(0, depthMap.height - 1)
@@ -131,6 +131,7 @@ object DetectionProcessing {
 
 
     private fun isZebraSegmentationOverlap(detection: DetectionResult, segmentationBitmap: Bitmap): Boolean {
+        var ZEBRA_OVERLAP_THRESHOLD = 0.33
         val (x, y, w, h) = detection.box
 
         val scaleX = segmentationBitmap.width.toFloat() / DETECTION_RESOLUTION.width
@@ -157,12 +158,12 @@ object DetectionProcessing {
             if (classId == Mappings.SegmentationZebraId) {
                 zebraPixels++
             }
-            if (zebraPixels >= totalPixels / 3) {
+            if (zebraPixels >= totalPixels * ZEBRA_OVERLAP_THRESHOLD) {
                 return true
             }
         }
 
-        return zebraPixels >= totalPixels / 2
+        return zebraPixels >= totalPixels * ZEBRA_OVERLAP_THRESHOLD
     }
 
 }
