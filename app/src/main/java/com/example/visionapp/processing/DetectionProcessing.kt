@@ -2,6 +2,7 @@ package com.example.visionapp.processing
 
 import android.graphics.Bitmap
 import android.util.Log
+import com.example.visionapp.CameraConfig
 import com.example.visionapp.CameraConfig.DEPTH_RESOLUTION
 import com.example.visionapp.CameraConfig.DETECTION_RESOLUTION
 import com.example.visionapp.Mappings
@@ -78,23 +79,21 @@ object DetectionProcessing {
         val w = box[2]
         val h = box[3]
 
-        val left = ((x - w / 2) * depthMap.width).toInt()
-        val top = ((y - h / 2) * depthMap.height).toInt()
-        val right = ((x + w / 2) * depthMap.width).toInt()
-        val bottom = ((y + h / 2) * depthMap.height).toInt()
+        val scaleX = depthMap.width.toFloat() / DEPTH_RESOLUTION.width
+        val scaleY = depthMap.height.toFloat() / DEPTH_RESOLUTION.height
 
-        val clampedLeft = left.coerceIn(0, depthMap.width - 1)
-        val clampedTop = top.coerceIn(0, depthMap.height - 1)
-        val clampedRight = right.coerceIn(0, depthMap.width - 1)
-        val clampedBottom = bottom.coerceIn(0, depthMap.height - 1)
+        val left = ((x - w / 2) * scaleX).toInt().coerceIn(0, depthMap.width - 1)
+        val top = ((y - h / 2) * scaleY).toInt().coerceIn(0, depthMap.height - 1)
+        val right = ((x + w / 2) * scaleX).toInt().coerceIn(0, depthMap.width - 1)
+        val bottom = ((y + h / 2) * scaleY).toInt().coerceIn(0, depthMap.height - 1)
 
-        val width = clampedRight - clampedLeft + 1
-        val height = clampedBottom - clampedTop + 1
+        val width = right - left + 1
+        val height = bottom - top + 1
 
         if (width <= 0 || height <= 0) return 0f
 
         val pixels = IntArray(width * height)
-        depthMap.getPixels(pixels, 0, width, clampedLeft, clampedTop, width, height)
+        depthMap.getPixels(pixels, 0, width, left, top, width, height)
 
         var totalDepth = 0f
         for (pixel in pixels) {
@@ -132,12 +131,16 @@ object DetectionProcessing {
 
 
     private fun isZebraSegmentationOverlap(detection: DetectionResult, segmentationBitmap: Bitmap): Boolean {
+        var ZEBRA_OVERLAP_THRESHOLD = 0.33
         val (x, y, w, h) = detection.box
 
-        val left = ((x - w / 2) * segmentationBitmap.width).toInt().coerceIn(0, segmentationBitmap.width - 1)
-        val top = ((y - h / 2) * segmentationBitmap.height).toInt().coerceIn(0, segmentationBitmap.height - 1)
-        val right = ((x + w / 2) * segmentationBitmap.width).toInt().coerceIn(0, segmentationBitmap.width - 1)
-        val bottom = ((y + h / 2) * segmentationBitmap.height).toInt().coerceIn(0, segmentationBitmap.height - 1)
+        val scaleX = segmentationBitmap.width.toFloat() / DETECTION_RESOLUTION.width
+        val scaleY = segmentationBitmap.height.toFloat() / DETECTION_RESOLUTION.height
+
+        val left = ((x - w / 2) * scaleX).toInt().coerceIn(0, segmentationBitmap.width - 1)
+        val top = ((y - h / 2) * scaleY).toInt().coerceIn(0, segmentationBitmap.height - 1)
+        val right = ((x + w / 2) * scaleX).toInt().coerceIn(0, segmentationBitmap.width - 1)
+        val bottom = ((y + h / 2) * scaleY).toInt().coerceIn(0, segmentationBitmap.height - 1)
 
         val width = right - left + 1
         val height = bottom - top + 1
@@ -155,12 +158,12 @@ object DetectionProcessing {
             if (classId == Mappings.SegmentationZebraId) {
                 zebraPixels++
             }
-            if (zebraPixels >= totalPixels / 2) {
+            if (zebraPixels >= totalPixels * ZEBRA_OVERLAP_THRESHOLD) {
                 return true
             }
         }
 
-        return zebraPixels >= totalPixels / 2
+        return zebraPixels >= totalPixels * ZEBRA_OVERLAP_THRESHOLD
     }
 
 }
