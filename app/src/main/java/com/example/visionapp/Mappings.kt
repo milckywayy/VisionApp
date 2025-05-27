@@ -71,7 +71,10 @@ object Mappings {
         2 to CommunicateType.MOVE_RIGHT,
         3 to CommunicateType.MOVE_LEFT,
         4 to CommunicateType.OBSTACLE,
-        5 to CommunicateType.NO_PASSAGE
+        5 to CommunicateType.NO_PASSAGE,
+        6 to CommunicateType.WARNING_ROAD,
+        7 to CommunicateType.WARNING_BIKE_PATH,
+        8 to CommunicateType.WARNING_PERSON
     )
 
     val SEGMENTATION_COLOR_MAP = mapOf(

@@ -5,7 +5,6 @@ import android.graphics.Color
 import com.example.visionapp.CameraConfig.SEGMENTATION_RESOLUTION
 import com.example.visionapp.TriangleConfig
 
-
 class TriangleMethod(
     depthBitmap: Bitmap,
     segmentationBitmap: Bitmap,
@@ -15,12 +14,16 @@ class TriangleMethod(
 
     companion object {
         private val nonValidClasses = mapOf(
-            0 to "road",
             3 to "obstacle",
             7 to "vehicle",
             2 to "wall",
             8 to "vegetation",
             11 to "tram"
+        )
+        private val specialClasses = mapOf(
+            0 to "road",
+            6 to "person",
+            9 to "bike_path"
         )
     }
     /*
@@ -29,9 +32,15 @@ class TriangleMethod(
     2: 'Przesuń się do prawej',
     3: 'Przesuń się do lewej',
     4: 'Uwaga przeszkoda. Przesuń się gdzieś.',
-    5: 'Zawróć',*/
+    5: 'Zawróć',
+    6: 'Uwaga, wchodzisz na...'*/
+    data class CheckResult(
+        val hasForbidden: Boolean,
+        val hasSpecial: Boolean,
+        val specialClassNames: Set<String> = emptySet()
+    )
 
-    private fun combineBitmaps(depthBitmap: Bitmap, segmentationBitmap: Bitmap): Bitmap {
+    public fun combineBitmaps(depthBitmap: Bitmap, segmentationBitmap: Bitmap): Bitmap {
         val width = SEGMENTATION_RESOLUTION.width
         val height = SEGMENTATION_RESOLUTION.height
         val scaledDepth = Bitmap.createScaledBitmap(depthBitmap, width, height, true)
@@ -50,10 +59,10 @@ class TriangleMethod(
         }
         outputBitmap.setPixels(outputPixels, 0, width, 0, 0, width, height)
 
-        val final = ModeFilter.applyModeFilter(outputBitmap, 7)
+        //val final = ModeFilter.applyModeFilter(outputBitmap, 7)
 
 
-         return final
+        return outputBitmap
     }
 
     fun analyzeScene(): SceneAnalysisResult {
@@ -61,37 +70,56 @@ class TriangleMethod(
 
         val width = SEGMENTATION_RESOLUTION.width
         val height = SEGMENTATION_RESOLUTION.height
-        val leftLine = findPixelsOnLine(TriangleConfig.LINE_1_a, TriangleConfig.LINE_1_b, (width/6).toInt()..(width/6*2).toInt(), (height/6*4).toInt()..(height-1).toInt())
-        val rightLine = findPixelsOnLine(TriangleConfig.LINE_2_a, TriangleConfig.LINE_2_b, (width/6*4).toInt()..(width/6*5).toInt(), (height/6*4).toInt()..(height-1).toInt())
+        val leftLine = findPixelsOnLine(TriangleConfig.LINE_1_a, TriangleConfig.LINE_1_b, (width / 6)..(width / 6 * 2), (height / 6 * 4)..(height - 1))
+        val rightLine = findPixelsOnLine(TriangleConfig.LINE_2_a, TriangleConfig.LINE_2_b, (width / 6 * 4)..(width / 6 * 5), (height / 6 * 4)..(height - 1))
 
         val imagePixels = IntArray(image.width * image.height)
         image.getPixels(imagePixels, 0, image.width, 0, 0, image.width, image.height)
 
-        val (obstacleOnLeft, obstacleCrossesBothLines) = checkLeftAndCrossing(imagePixels, image.width, leftLine, rightLine)
+        val (obstacleOnLeft, obstacleCrossing) = checkLeftAndCrossing(imagePixels, image.width, leftLine, rightLine)
 
-        return if (!obstacleCrossesBothLines) {
+        if (!obstacleCrossing) {
             val obstacleOnRight = checkRight(imagePixels, image.width, rightLine)
-            val obtacleInFront = checkInFront(imagePixels, image.width, image.height)
+            val obstacleFront = checkInFront(imagePixels, image.width, image.height)
 
-            if (!obtacleInFront) {
-                when {
-                    obstacleOnLeft && obstacleOnRight -> SceneAnalysisResult.NARROW_PASSAGE
-                    obstacleOnLeft && !obstacleOnRight -> SceneAnalysisResult.MOVE_RIGHT
-                    !obstacleOnLeft && obstacleOnRight -> SceneAnalysisResult.MOVE_LEFT
+            if (!obstacleOnLeft.hasForbidden && obstacleOnLeft.hasSpecial) {
+                return when {
+                    "road" in obstacleOnLeft.specialClassNames -> SceneAnalysisResult.WARNING_ROAD
+                    "bike_path" in obstacleOnLeft.specialClassNames -> SceneAnalysisResult.WARNING_BIKE_PATH
+                    "person" in obstacleOnLeft.specialClassNames -> SceneAnalysisResult.WARNING_PERSON
+                    else -> SceneAnalysisResult.NO_OBSTACLE // fallback
+                }
+            }
+
+            if (!obstacleOnRight.hasForbidden && obstacleOnRight.hasSpecial) {
+                return when {
+                    "road" in obstacleOnRight.specialClassNames -> SceneAnalysisResult.WARNING_ROAD
+                    "bike_path" in obstacleOnRight.specialClassNames -> SceneAnalysisResult.WARNING_BIKE_PATH
+                    "person" in obstacleOnRight.specialClassNames -> SceneAnalysisResult.WARNING_PERSON
+                    else -> SceneAnalysisResult.NO_OBSTACLE
+                }
+            }
+
+            if (!obstacleFront) {
+                return when {
+                    obstacleOnLeft.hasForbidden && obstacleOnRight.hasForbidden -> SceneAnalysisResult.NARROW_PASSAGE
+                    obstacleOnLeft.hasForbidden && !obstacleOnRight.hasForbidden -> SceneAnalysisResult.MOVE_RIGHT
+                    !obstacleOnLeft.hasForbidden && obstacleOnRight.hasForbidden -> SceneAnalysisResult.MOVE_LEFT
                     else -> SceneAnalysisResult.NO_OBSTACLE
                 }
             } else {
-                when {
-                    obstacleOnLeft && !obstacleOnRight -> SceneAnalysisResult.MOVE_RIGHT
-                    !obstacleOnLeft && obstacleOnRight -> SceneAnalysisResult.MOVE_LEFT
-                    !obstacleOnLeft && !obstacleOnRight -> SceneAnalysisResult.OBSTACLE_FRONT
+                return when {
+                    obstacleOnLeft.hasForbidden && !obstacleOnRight.hasForbidden -> SceneAnalysisResult.MOVE_RIGHT
+                    !obstacleOnLeft.hasForbidden && obstacleOnRight.hasForbidden -> SceneAnalysisResult.MOVE_LEFT
+                    !obstacleOnLeft.hasForbidden && !obstacleOnRight.hasForbidden -> SceneAnalysisResult.OBSTACLE_FRONT
                     else -> SceneAnalysisResult.TURN_AROUND
                 }
             }
         } else {
-            SceneAnalysisResult.TURN_AROUND
+            return SceneAnalysisResult.TURN_AROUND
         }
     }
+
 
     private fun findPixelsOnLine(
         a: Double,
@@ -119,7 +147,7 @@ class TriangleMethod(
         width: Int,
         leftLine: List<Pair<Int, Int>>,
         rightLine: List<Pair<Int, Int>>
-    ): Pair<Boolean, Boolean>  {
+    ): Pair<CheckResult, Boolean> {
         val line2Cords = mutableMapOf<Int, Int>()
         for (p in rightLine) {
             line2Cords[p.second] = p.first
@@ -127,42 +155,47 @@ class TriangleMethod(
 
         var hasLeft = false
         var hasCrossing = false
+        val specialClassesFound = mutableSetOf<String>()
 
-        for (point in leftLine) {
-            val (x, y) = point
+        for ((x, y) in leftLine) {
             val classId = Color.red(pixels[y * width + x])
-            if (classId in nonValidClasses) {
-                var x1 = point.first
-                val maxX = line2Cords[point.second] ?: continue
-                while (x1 < maxX) {
-                    x1++
-                    if (x1 >= width) break
-                    val nextColor = Color.red(pixels[y * width + x1])
-                    if (nextColor == classId)
-                        continue
-                    else
-                        break
+            when {
+                classId in nonValidClasses -> {
+                    var x1 = x
+                    val maxX = line2Cords[y] ?: continue
+                    while (x1 < maxX) {
+                        x1++
+                        if (x1 >= width) break
+                        val nextColor = Color.red(pixels[y * width + x1])
+                        if (nextColor == classId) continue
+                        else break
+                    }
+                    if (x1 >= maxX) hasCrossing = true else hasLeft = true
                 }
-                if (x1 >= maxX) {
-                    hasCrossing = true
-                } else {
-                    hasLeft = true
+                classId in specialClasses -> {
+                    specialClassesFound.add(specialClasses[classId]!!)
                 }
             }
         }
 
-        return Pair(hasLeft, hasCrossing)
+        return Pair(CheckResult(hasLeft, specialClassesFound.isNotEmpty(), specialClassesFound), hasCrossing)
     }
 
-    private fun checkRight(pixels: IntArray, width: Int, line2: List<Pair<Int, Int>>): Boolean {
-        for ((x,y) in line2) {
+
+    private fun checkRight(pixels: IntArray, width: Int, line2: List<Pair<Int, Int>>): CheckResult {
+        val specialClassesFound = mutableSetOf<String>()
+
+        for ((x, y) in line2) {
             val classId = Color.red(pixels[y * width + x])
-            if (classId in nonValidClasses) {
-                return true
+            when {
+                classId in nonValidClasses -> return CheckResult(true, false)
+                classId in specialClasses -> specialClassesFound.add(specialClasses[classId]!!)
             }
         }
-        return false
+
+        return CheckResult(false, specialClassesFound.isNotEmpty(), specialClassesFound)
     }
+
 
     private fun checkInFront(pixels: IntArray, width: Int, height: Int,
                              startXRatio: Double = 0.41,
@@ -192,4 +225,3 @@ class TriangleMethod(
         return false
     }
 }
-
