@@ -40,7 +40,7 @@ class TriangleMethod(
         val specialClassNames: Set<String> = emptySet()
     )
 
-    private fun combineBitmaps(depthBitmap: Bitmap, segmentationBitmap: Bitmap): Bitmap {
+    public fun combineBitmaps(depthBitmap: Bitmap, segmentationBitmap: Bitmap): Bitmap {
         val width = SEGMENTATION_RESOLUTION.width
         val height = SEGMENTATION_RESOLUTION.height
         val scaledDepth = Bitmap.createScaledBitmap(depthBitmap, width, height, true)
@@ -59,10 +59,10 @@ class TriangleMethod(
         }
         outputBitmap.setPixels(outputPixels, 0, width, 0, 0, width, height)
 
-        val final = ModeFilter.applyModeFilter(outputBitmap, 7)
+        //val final = ModeFilter.applyModeFilter(outputBitmap, 7)
 
 
-        return final
+        return outputBitmap
     }
 
     fun analyzeScene(): SceneAnalysisResult {
@@ -76,42 +76,42 @@ class TriangleMethod(
         val imagePixels = IntArray(image.width * image.height)
         image.getPixels(imagePixels, 0, image.width, 0, 0, image.width, image.height)
 
-        val (leftCheck, crossingSet) = checkLeftAndCrossing(imagePixels, image.width, leftLine, rightLine)
+        val (obstacleOnLeft, obstacleCrossing) = checkLeftAndCrossing(imagePixels, image.width, leftLine, rightLine)
 
-        if (!crossingSet) {
-            val rightCheck = checkRight(imagePixels, image.width, rightLine)
-            val frontSet = checkInFront(imagePixels, image.width, image.height)
+        if (!obstacleCrossing) {
+            val obstacleOnRight = checkRight(imagePixels, image.width, rightLine)
+            val obstacleFront = checkInFront(imagePixels, image.width, image.height)
 
-            if (!leftCheck.hasForbidden && leftCheck.hasSpecial) {
+            if (!obstacleOnLeft.hasForbidden && obstacleOnLeft.hasSpecial) {
                 return when {
-                    "road" in leftCheck.specialClassNames -> SceneAnalysisResult.WARNING_ROAD
-                    "bike_path" in leftCheck.specialClassNames -> SceneAnalysisResult.WARNING_BIKE_PATH
-                    "person" in leftCheck.specialClassNames -> SceneAnalysisResult.WARNING_PERSON
+                    "road" in obstacleOnLeft.specialClassNames -> SceneAnalysisResult.WARNING_ROAD
+                    "bike_path" in obstacleOnLeft.specialClassNames -> SceneAnalysisResult.WARNING_BIKE_PATH
+                    "person" in obstacleOnLeft.specialClassNames -> SceneAnalysisResult.WARNING_PERSON
                     else -> SceneAnalysisResult.NO_OBSTACLE // fallback
                 }
             }
 
-            if (!rightCheck.hasForbidden && rightCheck.hasSpecial) {
+            if (!obstacleOnRight.hasForbidden && obstacleOnRight.hasSpecial) {
                 return when {
-                    "road" in rightCheck.specialClassNames -> SceneAnalysisResult.WARNING_ROAD
-                    "bike_path" in rightCheck.specialClassNames -> SceneAnalysisResult.WARNING_BIKE_PATH
-                    "person" in rightCheck.specialClassNames -> SceneAnalysisResult.WARNING_PERSON
+                    "road" in obstacleOnRight.specialClassNames -> SceneAnalysisResult.WARNING_ROAD
+                    "bike_path" in obstacleOnRight.specialClassNames -> SceneAnalysisResult.WARNING_BIKE_PATH
+                    "person" in obstacleOnRight.specialClassNames -> SceneAnalysisResult.WARNING_PERSON
                     else -> SceneAnalysisResult.NO_OBSTACLE
                 }
             }
 
-            if (!frontSet) {
+            if (!obstacleFront) {
                 return when {
-                    leftCheck.hasForbidden && rightCheck.hasForbidden -> SceneAnalysisResult.NARROW_PASSAGE
-                    leftCheck.hasForbidden && !rightCheck.hasForbidden -> SceneAnalysisResult.MOVE_RIGHT
-                    !leftCheck.hasForbidden && rightCheck.hasForbidden -> SceneAnalysisResult.MOVE_LEFT
+                    obstacleOnLeft.hasForbidden && obstacleOnRight.hasForbidden -> SceneAnalysisResult.NARROW_PASSAGE
+                    obstacleOnLeft.hasForbidden && !obstacleOnRight.hasForbidden -> SceneAnalysisResult.MOVE_RIGHT
+                    !obstacleOnLeft.hasForbidden && obstacleOnRight.hasForbidden -> SceneAnalysisResult.MOVE_LEFT
                     else -> SceneAnalysisResult.NO_OBSTACLE
                 }
             } else {
                 return when {
-                    leftCheck.hasForbidden && !rightCheck.hasForbidden -> SceneAnalysisResult.MOVE_RIGHT
-                    !leftCheck.hasForbidden && rightCheck.hasForbidden -> SceneAnalysisResult.MOVE_LEFT
-                    !leftCheck.hasForbidden && !rightCheck.hasForbidden -> SceneAnalysisResult.OBSTACLE_FRONT
+                    obstacleOnLeft.hasForbidden && !obstacleOnRight.hasForbidden -> SceneAnalysisResult.MOVE_RIGHT
+                    !obstacleOnLeft.hasForbidden && obstacleOnRight.hasForbidden -> SceneAnalysisResult.MOVE_LEFT
+                    !obstacleOnLeft.hasForbidden && !obstacleOnRight.hasForbidden -> SceneAnalysisResult.OBSTACLE_FRONT
                     else -> SceneAnalysisResult.TURN_AROUND
                 }
             }
