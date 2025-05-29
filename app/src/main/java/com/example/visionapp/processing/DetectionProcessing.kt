@@ -113,7 +113,7 @@ object DetectionProcessing {
             if (group !in addedGroups) {
                 result.add(detection)
                 addedGroups.add(group)
-                if ( detection.classId == Mappings.DetectionZebraId && isZebraSegmentationOverlap(detection, segmentationBitmap)) {
+                if ( detection.classId == Mappings.DetectionZebraId && !isZebraSegmentationOverlap(detection, segmentationBitmap)) {
                     result.remove(detection)
                 }
             }
