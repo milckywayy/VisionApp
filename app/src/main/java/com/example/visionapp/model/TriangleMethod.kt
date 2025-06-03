@@ -96,9 +96,9 @@ class TriangleMethod(
                     return when {
                         obstacleOnLeft && !obstacleOnRight -> SceneAnalysisResult.MOVE_RIGHT
                         !obstacleOnLeft && obstacleOnRight -> SceneAnalysisResult.MOVE_LEFT
-                        !obstacleOnLeft && !obstacleOnRight && "road" in obstacleFront.specialClassNames -> SceneAnalysisResult.WARNING_ROAD
-                        !obstacleOnLeft && !obstacleOnRight && "bike_path" in obstacleFront.specialClassNames -> SceneAnalysisResult.WARNING_BIKE_PATH
-                        !obstacleOnLeft && !obstacleOnRight && "person" in obstacleFront.specialClassNames -> SceneAnalysisResult.WARNING_PERSON
+                        "road" in obstacleFront.specialClassNames -> SceneAnalysisResult.WARNING_ROAD
+                        "bike_path" in obstacleFront.specialClassNames -> SceneAnalysisResult.WARNING_BIKE_PATH
+                        "person" in obstacleFront.specialClassNames -> SceneAnalysisResult.WARNING_PERSON
                         else -> SceneAnalysisResult.NO_OBSTACLE
                     }
                 }
