@@ -86,10 +86,10 @@ class TriangleMethod(
 
             if (obstacleFront.hasForbidden) {
                 return when {
-                    obstacleOnLeft && obstacleOnRight -> SceneAnalysisResult.NARROW_PASSAGE
                     obstacleOnLeft && !obstacleOnRight -> SceneAnalysisResult.MOVE_RIGHT
                     !obstacleOnLeft && obstacleOnRight -> SceneAnalysisResult.MOVE_LEFT
-                    else -> SceneAnalysisResult.NO_OBSTACLE
+                    !obstacleOnLeft && !obstacleOnRight -> SceneAnalysisResult.OBSTACLE_FRONT
+                    else -> SceneAnalysisResult.TURN_AROUND
                 }
             } else {
                 if(obstacleFront.hasSpecial){
@@ -104,10 +104,10 @@ class TriangleMethod(
                 }
                 else{
                     return when {
+                        obstacleOnLeft && obstacleOnRight -> SceneAnalysisResult.NARROW_PASSAGE
                         obstacleOnLeft && !obstacleOnRight -> SceneAnalysisResult.MOVE_RIGHT
                         !obstacleOnLeft && obstacleOnRight -> SceneAnalysisResult.MOVE_LEFT
-                        !obstacleOnLeft && !obstacleOnRight -> SceneAnalysisResult.OBSTACLE_FRONT
-                        else -> SceneAnalysisResult.TURN_AROUND
+                        else -> SceneAnalysisResult.NO_OBSTACLE
                     }
                 }
             }
@@ -156,19 +156,19 @@ class TriangleMethod(
         for ((x, y) in leftLine) {
             val classId = Color.red(pixels[y * width + x])
 
-                if (classId in nonValidClasses || classId in specialClasses) {
-                    var x1 = x
-                    val maxX = line2Cords[y] ?: continue
-                    while (x1 < maxX) {
-                        x1++
-                        if (x1 >= width) break
-                        val nextColor = Color.red(pixels[y * width + x1])
-                        if (nextColor == classId) continue
-                        else break
-                    }
-                    if (x1 >= maxX) hasCrossing = true else hasLeft = true
+            if (classId in nonValidClasses || classId in specialClasses) {
+                var x1 = x
+                val maxX = line2Cords[y] ?: continue
+                while (x1 < maxX) {
+                    x1++
+                    if (x1 >= width) break
+                    val nextColor = Color.red(pixels[y * width + x1])
+                    if (nextColor == classId) continue
+                    else break
                 }
+                if (x1 >= maxX) hasCrossing = true else hasLeft = true
             }
+        }
 
         return Pair(hasLeft, hasCrossing)
     }
