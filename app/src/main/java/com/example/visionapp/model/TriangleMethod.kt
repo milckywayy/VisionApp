@@ -82,37 +82,33 @@ class TriangleMethod(
             val obstacleOnRight = checkRight(imagePixels, image.width, rightLine)
             val obstacleFront = checkInFront(imagePixels, image.width, image.height)
 
-            if (!obstacleOnLeft.hasForbidden && obstacleOnLeft.hasSpecial) {
-                return when {
-                    "road" in obstacleOnLeft.specialClassNames -> SceneAnalysisResult.WARNING_ROAD
-                    "bike_path" in obstacleOnLeft.specialClassNames -> SceneAnalysisResult.WARNING_BIKE_PATH
-                    "person" in obstacleOnLeft.specialClassNames -> SceneAnalysisResult.WARNING_PERSON
-                    else -> SceneAnalysisResult.NO_OBSTACLE // fallback
-                }
-            }
 
-            if (!obstacleOnRight.hasForbidden && obstacleOnRight.hasSpecial) {
-                return when {
-                    "road" in obstacleOnRight.specialClassNames -> SceneAnalysisResult.WARNING_ROAD
-                    "bike_path" in obstacleOnRight.specialClassNames -> SceneAnalysisResult.WARNING_BIKE_PATH
-                    "person" in obstacleOnRight.specialClassNames -> SceneAnalysisResult.WARNING_PERSON
-                    else -> SceneAnalysisResult.NO_OBSTACLE
-                }
-            }
 
-            if (!obstacleFront) {
+            if (obstacleFront.hasForbidden) {
                 return when {
-                    obstacleOnLeft.hasForbidden && obstacleOnRight.hasForbidden -> SceneAnalysisResult.NARROW_PASSAGE
-                    obstacleOnLeft.hasForbidden && !obstacleOnRight.hasForbidden -> SceneAnalysisResult.MOVE_RIGHT
-                    !obstacleOnLeft.hasForbidden && obstacleOnRight.hasForbidden -> SceneAnalysisResult.MOVE_LEFT
+                    obstacleOnLeft && obstacleOnRight -> SceneAnalysisResult.NARROW_PASSAGE
+                    obstacleOnLeft && !obstacleOnRight -> SceneAnalysisResult.MOVE_RIGHT
+                    !obstacleOnLeft && obstacleOnRight -> SceneAnalysisResult.MOVE_LEFT
                     else -> SceneAnalysisResult.NO_OBSTACLE
                 }
             } else {
-                return when {
-                    obstacleOnLeft.hasForbidden && !obstacleOnRight.hasForbidden -> SceneAnalysisResult.MOVE_RIGHT
-                    !obstacleOnLeft.hasForbidden && obstacleOnRight.hasForbidden -> SceneAnalysisResult.MOVE_LEFT
-                    !obstacleOnLeft.hasForbidden && !obstacleOnRight.hasForbidden -> SceneAnalysisResult.OBSTACLE_FRONT
-                    else -> SceneAnalysisResult.TURN_AROUND
+                if(obstacleFront.hasSpecial){
+                    return when {
+                        obstacleOnLeft && !obstacleOnRight -> SceneAnalysisResult.MOVE_RIGHT
+                        !obstacleOnLeft && obstacleOnRight -> SceneAnalysisResult.MOVE_LEFT
+                        !obstacleOnLeft && !obstacleOnRight && "road" in obstacleFront.specialClassNames -> SceneAnalysisResult.WARNING_ROAD
+                        !obstacleOnLeft && !obstacleOnRight && "bike_path" in obstacleFront.specialClassNames -> SceneAnalysisResult.WARNING_BIKE_PATH
+                        !obstacleOnLeft && !obstacleOnRight && "person" in obstacleFront.specialClassNames -> SceneAnalysisResult.WARNING_PERSON
+                        else -> SceneAnalysisResult.NO_OBSTACLE
+                    }
+                }
+                else{
+                    return when {
+                        obstacleOnLeft && !obstacleOnRight -> SceneAnalysisResult.MOVE_RIGHT
+                        !obstacleOnLeft && obstacleOnRight -> SceneAnalysisResult.MOVE_LEFT
+                        !obstacleOnLeft && !obstacleOnRight -> SceneAnalysisResult.OBSTACLE_FRONT
+                        else -> SceneAnalysisResult.TURN_AROUND
+                    }
                 }
             }
         } else {
@@ -147,7 +143,7 @@ class TriangleMethod(
         width: Int,
         leftLine: List<Pair<Int, Int>>,
         rightLine: List<Pair<Int, Int>>
-    ): Pair<CheckResult, Boolean> {
+    ): Pair<Boolean, Boolean> {
         val line2Cords = mutableMapOf<Int, Int>()
         for (p in rightLine) {
             line2Cords[p.second] = p.first
@@ -159,8 +155,8 @@ class TriangleMethod(
 
         for ((x, y) in leftLine) {
             val classId = Color.red(pixels[y * width + x])
-            when {
-                classId in nonValidClasses -> {
+
+                if (classId in nonValidClasses || classId in specialClasses) {
                     var x1 = x
                     val maxX = line2Cords[y] ?: continue
                     while (x1 < maxX) {
@@ -172,35 +168,33 @@ class TriangleMethod(
                     }
                     if (x1 >= maxX) hasCrossing = true else hasLeft = true
                 }
-                classId in specialClasses -> {
-                    specialClassesFound.add(specialClasses[classId]!!)
-                }
             }
-        }
 
-        return Pair(CheckResult(hasLeft, specialClassesFound.isNotEmpty(), specialClassesFound), hasCrossing)
+        return Pair(hasLeft, hasCrossing)
     }
 
 
-    private fun checkRight(pixels: IntArray, width: Int, line2: List<Pair<Int, Int>>): CheckResult {
-        val specialClassesFound = mutableSetOf<String>()
+    private fun checkRight(pixels: IntArray, width: Int, line2: List<Pair<Int, Int>>): Boolean {
 
         for ((x, y) in line2) {
             val classId = Color.red(pixels[y * width + x])
-            when {
-                classId in nonValidClasses -> return CheckResult(true, false)
-                classId in specialClasses -> specialClassesFound.add(specialClasses[classId]!!)
+            if (classId in nonValidClasses || classId in specialClasses) {
+                return true
             }
         }
 
-        return CheckResult(false, specialClassesFound.isNotEmpty(), specialClassesFound)
+        return false
     }
 
 
-    private fun checkInFront(pixels: IntArray, width: Int, height: Int,
-                             startXRatio: Double = 0.41,
-                             endXRatio: Double = 0.58,
-                             startYRatio: Double = 2.0 / 3.0): Boolean {
+    private fun checkInFront(
+        pixels: IntArray,
+        width: Int,
+        height: Int,
+        startXRatio: Double = 0.41,
+        endXRatio: Double = 0.58,
+        startYRatio: Double = 2.0 / 3.0
+    ): CheckResult {
         /*
            top left point-->|\
                             | \
@@ -209,19 +203,31 @@ class TriangleMethod(
                             |    \
         bottom left point-->|_____\ <-- bottom right point
          */
-        val topLeft = Pair((width*startXRatio).toInt(), height-1)
-        val bottomLeft = Pair((width*startXRatio).toInt(),  (height * startYRatio).toInt())
-        val bottomRight = Pair((width*endXRatio).toInt(), height-1)
+        val topLeft = Pair((width * startXRatio).toInt(), height - 1)
+        val bottomLeft = Pair((width * startXRatio).toInt(), (height * startYRatio).toInt())
+        val bottomRight = Pair((width * endXRatio).toInt(), height - 1)
+
+        var hasForbidden = false
+        val specialClassesFound = mutableSetOf<String>()
 
         for (y in bottomLeft.second until topLeft.second) {
             for (x in bottomLeft.first until bottomRight.first) {
                 val classId = Color.red(pixels[y * width + x])
-                if (classId in nonValidClasses) {
-                    return true
+                when {
+                    classId in nonValidClasses -> {
+                        hasForbidden = true
+                    }
+                    classId in specialClasses -> {
+                        specialClassesFound.add(specialClasses[classId]!!)
+                    }
                 }
             }
         }
 
-        return false
+        return CheckResult(
+            hasForbidden = hasForbidden,
+            hasSpecial = specialClassesFound.isNotEmpty(),
+            specialClassNames = specialClassesFound
+        )
     }
 }
