@@ -17,7 +17,7 @@ object CameraConfig {
 }
 
 object ModelsConfig {
-    const val SEG_MODEL_PATH = "pp_liteseg.onnx"
+    const val SEG_MODEL_PATH = "pp_liteseg_quantized.onnx"
     const val DET_MODEL_PATH = "detection.onnx"
     const val DEPTH_MODEL_PATH = "vits_280.onnx"
     const val DET_MODEL_NUM_OF_CLASSES = 13
@@ -29,8 +29,8 @@ object ModelsConfig {
 }
 
 object CommunicateConfig{
-    const val CLEANUP_CHECK_INTERVAL_MS = 2_000L
-    const val COMMUNICATE_MAX_AGE_MS = 10_000L
+    const val CLEANUP_CHECK_INTERVAL_MS = 1_000L
+    const val COMMUNICATE_MAX_AGE_MS = 5_000L
 }
 
 object TriangleConfig {
